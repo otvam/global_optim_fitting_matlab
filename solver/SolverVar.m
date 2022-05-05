@@ -1,4 +1,14 @@
 classdef SolverVar < handle
+    % Class for managing the variables.
+    %
+    %    Abstraction layer (high level parameter structure vs. raw matrix).
+    %    Variable transformation (linear, quadratic, logarithmic)
+    %    Variable normalization (betweem zero and one)
+    %    Transform bounded variables to uncontrained variable with sine transformation
+    %
+    %    Thomas Guillod.
+    %    2021-2022 - BSD License.
+    
     %% properties
     properties (SetAccess = private, GetAccess = private)
         var_opt
@@ -32,10 +42,10 @@ classdef SolverVar < handle
         
         function [n_pts, param, bnd, is_bound] = get_param(self, x_scale)
             % Get the parameters and bounds.
-                
+            
             for i=1:length(self.var_opt)
                 [name, idx, x_tmp, is_bound_tmp] = SolverVar.get_param_opt(x_scale(:,i), self.var_opt{i}, self.lb_scale(i), self.ub_scale(i), self.tol_bound);
-                                
+                
                 param.(name)(idx,:) = x_tmp;
                 bnd.(name)(idx,:) = is_bound_tmp;
                 is_bound(i,:) = is_bound_tmp;
@@ -66,7 +76,7 @@ classdef SolverVar < handle
         
         function x_scale = get_clamp(self, x_unclamp, clamp_bnd)
             % Clamp the variables.
-                        
+            
             for i=1:size(x_unclamp, 2)
                 x_scale(:,i) = SolverUtils.get_var_clamp(x_unclamp(:,i), clamp_bnd, self.lb_scale(i), self.ub_scale(i));
             end
@@ -83,11 +93,12 @@ classdef SolverVar < handle
             lb = var.lb;
             ub = var.ub;
             scale = var.scale;
+            norm = var.norm;
             
             % scale and assign the results to vectors
-            [x0_scale, lb_scale, ub_scale] =  SolverUtils.get_var_scale(x0, lb, ub, scale);
+            [x0_scale, lb_scale, ub_scale] =  SolverUtils.get_var_scale(x0, lb, ub, scale, norm);
         end
-
+        
         function [name, idx, x, is_bound] = get_param_opt(x_scale, var, lb_scale, ub_scale, tol_bound)
             % Get the parameters for an optimization variable.
             
@@ -96,13 +107,14 @@ classdef SolverVar < handle
             lb = var.lb;
             ub = var.ub;
             scale = var.scale;
-
+            norm = var.norm;
+            
             tol = tol_bound.*(ub_scale-lb_scale);
             lb_scale_tol = lb_scale+tol;
             ub_scale_tol = ub_scale-tol;
             
             is_bound = (x_scale>lb_scale_tol)&(x_scale<ub_scale_tol);
-            x = SolverUtils.get_var_unscale(x_scale, lb, ub, scale);
+            x = SolverUtils.get_var_unscale(x_scale, lb, ub, scale, norm);
         end
         
         function [name, idx, x, is_bound] = get_param_fix(var, n_rep)

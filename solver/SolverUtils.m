@@ -84,44 +84,62 @@ classdef SolverUtils < handle
     
     %% scale
     methods(Static, Access = public)
-        function [x0_scale, lb_scale, ub_scale] = get_var_scale(x0, lb, ub, scale)
+        function [x0_scale, lb_scale, ub_scale] = get_var_scale(x0, lb, ub, scale, norm)
             % Normalize a variable.
             
             switch scale
-                case 'lin' % linear scale, without fixed bounds
-                    fct = @(x) x;
-                case 'lin_norm' % linear scale, normalize bounds to [0 1]
-                    fct = @(x) (x-lb)./(ub-lb);
-                case 'log' % logarithmic scale, without fixed bounds
-                    fct = @(x) log10(x);
-                case 'log_norm' % logarithmic scale, normalize bounds to [0 1]
-                    fct = @(x) (log10(x)-log10(lb))./(log10(ub)-log10(lb));
+                case 'lin'
+                    fct_scale = @(x) x;
+                case 'sqrt'
+                    fct_scale = @(x) sqrt(x);
+                case 'quad'
+                    fct_scale = @(x) x.^2;
+                case 'log'
+                    fct_scale = @(x) log10(x);
                 otherwise
                     error('invalid data')
             end
             
-            x0_scale = fct(x0);
-            lb_scale = fct(lb);
-            ub_scale = fct(ub);
+            x0_scale = fct_scale(x0);
+            lb_scale = fct_scale(lb);
+            ub_scale = fct_scale(ub);
+            
+            if norm==true
+                fct = @(x) (x-lb)./(ub-lb);
+                
+                x0_scale = fct(x0_scale);
+                lb_scale = fct(lb_scale);
+                ub_scale = fct(ub_scale);
+            end
         end
         
-        function x = get_var_unscale(x_scale, lb, ub, scale)
+        function x = get_var_unscale(x_scale, lb, ub, scale, norm)
             % Denormalize a variable.
             
             switch scale
-                case 'lin' % linear scale, without bounds
-                    fct = @(x) x;
-                case 'lin_norm' % linear scale, normalize bounds to [0 1]
-                    fct = @(x) lb+x.*(ub-lb);
-                case 'log' % logarithmic scale, without bounds
-                    fct = @(x) 10.^x;
-                case 'log_norm' % logarithmic scale, normalize bounds to [0 1]
-                    fct = @(x) 10.^(log10(lb)+x.*(log10(ub)-log10(lb)));
+                case 'lin'
+                    fct_scale = @(x) x;
+                    fct_unscale = @(x) x;
+                case 'sqrt'
+                    fct_scale = @(x) sqrt(x);
+                    fct_unscale = @(x) x.^2;
+                case 'quad'
+                    fct_scale = @(x) x.^2;
+                    fct_unscale = @(x) sqrt(x);
+                case 'log'
+                    fct_scale = @(x) log10(x);
+                    fct_unscale = @(x) 10.^x;
                 otherwise
                     error('invalid data')
             end
+
+            if norm==true
+                lb_scale = fct_scale(lb);
+                ub_scale = fct_scale(ub);
+                x_scale = lb_scale+x_scale.*(ub_scale-lb_scale);
+            end
             
-            x = fct(x_scale);
+            x = fct_unscale(x_scale);
         end
     end
     

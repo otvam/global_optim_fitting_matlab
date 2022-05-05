@@ -1,4 +1,5 @@
 classdef SolverCache < handle
+
     %% properties
     properties (SetAccess = private, GetAccess = private)
         fct_opt
