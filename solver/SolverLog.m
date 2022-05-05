@@ -67,7 +67,7 @@ classdef SolverLog < handle
         end
     end
     
-    %% public api
+    %% public static api
     methods(Static, Access = public)
         function get_disp(name, optim)
             % Display the optim structure.
@@ -194,13 +194,13 @@ classdef SolverLog < handle
         end
     end
     
-    %% private api
+    %% private static api
     methods(Static, Access = private)
         function optim = get_log(x_unclamp, is_valid, n_iter, n_eval, msg, t_solver, t_iter, data_optim)
             % Create the optim struct.
             
             % extract
-            fct_opt = data_optim.fct_opt;
+            fct_err = data_optim.fct_err;
             fct_clamp = data_optim.fct_clamp;
             fct_param = data_optim.fct_param;
             error_norm = data_optim.error_norm;
@@ -213,7 +213,7 @@ classdef SolverLog < handle
             
             % get error
             x_scale = fct_clamp(x_unclamp);
-            [err_mat, wgt_mat] = fct_opt(x_scale);
+            [err_mat, wgt_mat] = fct_err(x_scale);
             err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);
             pop_valid = isfinite(err);
             

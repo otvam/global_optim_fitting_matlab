@@ -1,4 +1,4 @@
-classdef SolverInterface < handle
+classdef SolverRun < handle
     %% properties
     properties (SetAccess = private, GetAccess = private)
         obj_var
@@ -7,7 +7,7 @@ classdef SolverInterface < handle
     
     %% public
     methods (Access = public)
-        function self = SolverInterface(obj_var, obj_cache)
+        function self = SolverRun(obj_var, obj_cache)
             % set data
             self.obj_var = obj_var;
             self.obj_cache = obj_cache;
@@ -31,24 +31,24 @@ classdef SolverInterface < handle
             fct_unclamp = @(x0_scale) self.obj_var.get_unclamp(x0_scale, clamp_bnd);
             fct_clamp = @(x_clamp) self.obj_var.get_clamp(x_clamp, clamp_bnd);
             fct_param = @(x_scale) self.obj_var.get_param(x_scale);
-            fct_opt = @(x_scale) self.obj_cache.get_eval(x_scale);
+            fct_err = @(x_scale) self.obj_cache.get_eval(x_scale);
             
             % objective
-            fct_sol = @(x_unclamp) SolverInterface.get_sol(x_unclamp, fct_opt, fct_clamp, error_norm, recover_val);
+            fct_sol = @(x_unclamp) SolverRun.get_sol(x_unclamp, fct_err, fct_clamp, error_norm, recover_val);
             
             % get logging
-            data_optim.fct_opt = fct_opt;
+            data_optim.fct_err = fct_err;
             data_optim.fct_clamp = fct_clamp;
             data_optim.fct_param = fct_param;
             data_optim.error_norm = error_norm;
             data_optim.n_var = size(x0_scale, 2);
             
             % call the solver
-            [x_scale, optim] = SolverInterface.get_solver(fct_sol, fct_unclamp, fct_clamp, x0_scale, options, solver_type, data_optim);
+            [x_scale, optim] = SolverRun.get_solver(fct_sol, fct_unclamp, fct_clamp, x0_scale, options, solver_type, data_optim);
         end
     end
     
-    %% private api
+    %% private static api
     methods (Static, Access = private)
         function [x_scale, optim] = get_solver(fct_sol, fct_unclamp, fct_clamp, x0_scale, options, solver_type, data_optim)
             % Call the solver.
@@ -71,12 +71,12 @@ classdef SolverInterface < handle
             optim = obj_log.get_optim();
         end
         
-        function err = get_sol(x_unclamp, fct_opt, fct_clamp, error_norm, recover_val)
+        function err = get_sol(x_unclamp, fct_err, fct_clamp, error_norm, recover_val)
             % Objective function.
             
             % evaluate points
             x_scale = fct_clamp(x_unclamp);
-            [err_mat, wgt_mat] = fct_opt(x_scale);
+            [err_mat, wgt_mat] = fct_err(x_scale);
                                                                         
             % get error
             err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);

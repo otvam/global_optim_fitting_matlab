@@ -2,9 +2,9 @@ classdef SolverVar < handle
     % Class for managing the variables.
     %
     %    Abstraction layer (high level parameter structure vs. raw matrix).
-    %    Variable transformation (linear, quadratic, logarithmic)
-    %    Variable normalization (between zero and one)
-    %    Transform bounded variables to uncontrained variable with sine transformation
+    %    Variable transformation (linear, quadratic, logarithmic).
+    %    Variable normalization (between zero and one).
+    %    Transform bounded variables to uncontrained variable with sine transformation.
     %
     %    Thomas Guillod.
     %    2021-2022 - BSD License.

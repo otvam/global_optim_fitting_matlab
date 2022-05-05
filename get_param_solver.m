@@ -27,7 +27,7 @@ switch solver_type
         options.n_batch = 500;
         options.n_tot = 50;
         options.n_eval_max = 5e3;
-        options.val_lim = 1.0;
+        options.val_lim = 0.3;
                 
         clamp_bnd = false;
         recover_val = NaN;

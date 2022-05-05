@@ -130,7 +130,7 @@ classdef SolverUtils < handle
             
             % normalize if required
             if norm==true
-                fct = @(x) (x-lb)./(ub-lb);
+                fct = @(x) (x-lb_scale)./(ub_scale-lb_scale);
                 
                 x0_scale = fct(x0_scale);
                 lb_scale = fct(lb_scale);

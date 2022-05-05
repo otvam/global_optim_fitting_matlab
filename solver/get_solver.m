@@ -53,18 +53,18 @@ obj_var = SolverVar(var_opt, var_fix, tol_bound);
 
 % cache object for the error function
 fprintf('get cache\n')
-fct_err_cache = @(x_scale) get_vec_cache(x_scale, obj_var, fct_err);
+fct_err_cache = @(x_scale) get_err_cache(x_scale, obj_var, fct_err);
 obj_cache = SolverCache(fct_err_cache, use_cache, vec_cache, n_cache, tol_cache);
 
 % object interfacing the different solvers
 fprintf('get interface\n')
-obj_interface = SolverInterface(obj_var, obj_cache);
+obj_run = SolverRun(obj_var, obj_cache);
 
 % calling the different solvers (using the results as initial values)
 disp('run solvers')
 x_scale = obj_var.get_x0_scale();
 for i=1:length(optimizer)
-    [x_scale, optim{i}] = obj_interface.get_run(x_scale, optimizer{i});
+    [x_scale, optim{i}] = obj_run.get_run(x_scale, optimizer{i});
 end
 
 % extract the parameter structure from a raw matrix (transformation and normalization)
@@ -75,8 +75,8 @@ assert(n_pts==1, 'invalid solution')
 
 end
 
-function [err_mat, wgt_mat] = get_vec_cache(x_scale, obj_var, fct_err)
-% Error function used by the solver (throught the cache).
+function [err_mat, wgt_mat] = get_err_cache(x_scale, obj_var, fct_err)
+% Error function used by the solver (through the cache).
 
 % extract the parameter structure from a raw matrix (transformation and normalization)
 [n_pts, param] = obj_var.get_param(x_scale);
