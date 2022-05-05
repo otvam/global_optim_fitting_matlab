@@ -1,9 +1,8 @@
 classdef SolverUtils < handle
     % Static class with various utils.
     %
-    %    Computating error metrics.
+    %    Computing error metrics.
     %    Scaling of variables.
-    %    Display data.
     %
     %    Thomas Guillod.
     %    2021-2022 - BSD License.
@@ -168,31 +167,6 @@ classdef SolverUtils < handle
             
             % revert the variable transformation
             x = fct_unscale(x_scale);
-        end
-    end
-    
-    %% display
-    methods(Static, Access = public)
-        function txt = get_disp_vec(vec)
-            % Parse a vector to string.
-            
-            % parse each elements
-            for i=1:length(vec)
-                if islogical(vec(i))
-                    txt{i} = mat2str(vec(i));
-                elseif isnumeric(vec(i))
-                    txt{i} = sprintf('%.3e', vec(i));
-                else
-                    error('invalid data')
-                end
-            end
-            
-            % assemble the string
-            if isscalar(vec)
-                txt = txt{:};
-            else
-                txt = sprintf('[%s]', strjoin(txt, ' ; '));
-            end
         end
     end
 end

@@ -10,8 +10,11 @@ classdef SolverLog < handle
     %% properties
     properties (SetAccess = private, GetAccess = private)
         solver_type % name of the used solver
+        log_iter % log (or not) the solver iterations
+        log_final % log (or not) the solver final results
         data_optim % data required for the logging (error function and variable scaling)
-        
+        format % structure with formatting instructions (name and unit)
+
         t_start % timestamp set at the initialization
         t_last % timestamp of the last iteration
         optim % cell containing the logged data
@@ -19,12 +22,15 @@ classdef SolverLog < handle
     
     %% public
     methods (Access = public)
-        function self = SolverLog(solver_type, data_optim)
+        function self = SolverLog(solver_type, log_iter, log_final, data_optim, format)
             % Constructor.
             
             % set data
-            self.data_optim = data_optim;
             self.solver_type = solver_type;
+            self.log_iter = log_iter;
+            self.log_final = log_final;
+            self.data_optim = data_optim;
+            self.format = format;
             
             % init the timing and logging data
             self.t_start = datetime('now');
@@ -34,6 +40,11 @@ classdef SolverLog < handle
         
         function get_iter(self, x_unclamp, err, n_iter, n_eval, msg)
             % Log and display the solver progress after an iteration.
+            
+            % get if logging is required
+            if self.log_iter==false
+                return
+            end
             
             % get the total solver time and the time of the last iteration
             t_now = datetime('now');
@@ -51,11 +62,16 @@ classdef SolverLog < handle
             
             % display the data
             name = sprintf('iter / %s / n = %d / %d', self.solver_type, n_iter, n_eval);
-            SolverLog.get_disp(name, self.optim{end})
+            SolverLog.get_disp(name, self.optim{end}, self.format)
         end
         
         function get_final(self, x_unclamp, err, n_iter, n_eval, msg, is_valid)
             % Log, display, and plot the solver results after the final iteration.
+            
+            % get if logging is required
+            if self.log_final==false
+                return
+            end
             
             % get the total solver time and the average time per iteration
             t_now = datetime('now');
@@ -71,9 +87,9 @@ classdef SolverLog < handle
             
             % display and plot the data
             name = sprintf('final / %s', self.solver_type);
-            SolverLog.get_disp(name, self.optim{end})
-            SolverLog.get_plot_single(name, self.optim{end})
-            SolverLog.get_plot_all(name, self.optim)
+            SolverLog.get_disp(name, self.optim{end}, self.format)
+            SolverLog.get_plot_single(name, self.optim{end}, self.format)
+            SolverLog.get_plot_all(name, self.optim, self.format)
         end
         
         function optim = get_optim(self)
@@ -85,12 +101,14 @@ classdef SolverLog < handle
     
     %% public static api
     methods(Static, Access = public)
-        function get_disp(name, optim)
+        function get_disp(name, optim, format)
             % Display the logged data for a specific iteration.
             
             % name of the iteration
             fprintf('    %s\n', name)
-            
+            err = format.err;
+            param = format.param;
+                        
             % displaty the solver message
             fprintf('        msg\n')
             for i=1:length(optim.msg)
@@ -109,37 +127,38 @@ classdef SolverLog < handle
             fprintf('                t_solver = %s\n', char(optim.sol_fom.t_solver))
             fprintf('                t_iter = %s\n', char(optim.sol_fom.t_iter))
             fprintf('            error\n')
-            fprintf('                err = %.3f %%\n', 1e2.*optim.sol_fom.err)
             fprintf('                n_pop_all = %d\n', optim.sol_fom.n_pop_all)
             fprintf('                n_pop_fail = %d\n', optim.sol_fom.n_pop_fail)
-            
+            fprintf('                err = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err, err))
+
             % display the error metrics
             fprintf('        err_fom\n')
             fprintf('            size\n')
             fprintf('                n_rep = %d\n', optim.err_fom.n_rep)
             fprintf('                n_all = %d\n', optim.err_fom.n_all)
             fprintf('            norm\n')
-            fprintf('                norm_avg = %.3f %%\n', 1e2.*optim.err_fom.norm_avg)
-            fprintf('                norm_n_2 = %.3f %%\n', 1e2.*optim.err_fom.norm_n_2)
-            fprintf('                norm_n_4 = %.3f %%\n', 1e2.*optim.err_fom.norm_n_4)
-            fprintf('                norm_n_6 = %.3f %%\n', 1e2.*optim.err_fom.norm_n_6)
-            fprintf('                norm_n_8 = %.3f %%\n', 1e2.*optim.err_fom.norm_n_8)
-            fprintf('                norm_n_10 = %.3f %%\n', 1e2.*optim.err_fom.norm_n_10)
-            fprintf('                norm_n_12 = %.3f %%\n', 1e2.*optim.err_fom.norm_n_12)
-            fprintf('                norm_inf = %.3f %%\n', 1e2.*optim.err_fom.norm_inf)
+            fprintf('                norm_avg = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_avg, err))
+            fprintf('                norm_n_2 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_2, err))
+            fprintf('                norm_n_4 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_4, err))
+            fprintf('                norm_n_6 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_6, err))
+            fprintf('                norm_n_8 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_8, err))
+            fprintf('                norm_n_10 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_10, err))
+            fprintf('                norm_n_12 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_12, err))
+            fprintf('                norm_inf = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_inf, err))
             fprintf('            percentile\n')
-            fprintf('                percentile_50 = %.3f %%\n', 1e2.*optim.err_fom.percentile_50)
-            fprintf('                percentile_75 = %.3f %%\n', 1e2.*optim.err_fom.percentile_75)
-            fprintf('                percentile_90 = %.3f %%\n', 1e2.*optim.err_fom.percentile_90)
-            fprintf('                percentile_95 = %.3f %%\n', 1e2.*optim.err_fom.percentile_95)
-            fprintf('                percentile_99 = %.3f %%\n', 1e2.*optim.err_fom.percentile_99)
+            fprintf('                percentile_50 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_50, err))
+            fprintf('                percentile_75 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_75, err))
+            fprintf('                percentile_90 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_90, err))
+            fprintf('                percentile_95 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_95, err))
+            fprintf('                percentile_99 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_99, err))
             
             % display the current best parameter combinations
             fprintf('        param\n')
             field = fieldnames(optim.param);
             for i=1:length(field)
                 value = optim.param.(field{i});
-                fprintf('            param.%s = %s;\n', field{i}, SolverUtils.get_disp_vec(value))
+                param_tmp = param.(field{i});
+                fprintf('            param.%s = %s\n', field{i}, SolverLog.get_format_vec(value, param_tmp))
             end
             
             % display if the parameters are close to the bounds
@@ -147,31 +166,86 @@ classdef SolverLog < handle
             field = fieldnames(optim.bnd);
             for i=1:length(field)
                 value = optim.bnd.(field{i});
-                fprintf('            bnd.%s = %s;\n', field{i}, SolverUtils.get_disp_vec(value))
+                fprintf('            bnd.%s = %s\n', field{i}, SolverLog.get_format_bnd(value))
             end
         end
+                
+        function txt = get_format_scalar(val, format)
+            % Parse a scalar to a string with scaling and units.
+            
+            % extract
+            spec = format.spec;
+            scale = format.scale;
+            unit = format.unit;
+            
+            % parse each elements
+            txt = sprintf(spec, scale.*val);
+            
+            % add unit
+            txt = [txt ' ' unit];
+        end
+
+        function txt = get_format_vec(vec, format)
+            % Parse a vector to a string with scaling and units.
+            
+            % extract
+            spec = format.spec;
+            scale = format.scale;
+            unit = format.unit;
+                        
+            % parse each elements
+            for i=1:length(vec)
+                txt{i} = sprintf(spec, scale.*vec(i));
+            end
+            
+            % assemble the string
+            txt = sprintf('[%s]', strjoin(txt, ' ; '));
+            
+            % add unit
+            txt = [txt ' ' unit];
+        end
+
+        function txt = get_format_bnd(vec)
+            % Parse a boolean vector to string.
+            
+            % parse each elements
+            for i=1:length(vec)
+                txt{i} = mat2str(vec(i));
+            end
+            
+            % assemble the string
+            txt = sprintf('[%s]', strjoin(txt, ' ; '));
+        end
         
-        function get_plot_single(name, optim)
+        function get_plot_single(name, optim, format)
             % Plot the logged data for a specific iteration.
+            
+            % extract format
+            scale = format.err.scale;
+            unit = format.err.unit;
             
             % extract the error vector and the weighted error vector
             err_wgt_vec = optim.err_wgt_vec;
             err_vec = optim.err_vec;
-                                    
+            
             % plot the error distribution
             figure('name', [name ' / single'])
-            histogram(1e2.*err_wgt_vec, 'Normalization', 'pdf')
+            histogram(scale.*err_wgt_vec, 'Normalization', 'pdf')
             hold('on')
-            histogram(1e2.*err_vec, 'Normalization', 'pdf')
+            histogram(scale.*err_vec, 'Normalization', 'pdf')
             grid('on')
-            xlabel('err (%)')
-            ylabel('p (#)')
+            xlabel(['err (' unit ')'], 'interpreter', 'none')
+            ylabel('p (#)', 'interpreter', 'none')
             legend('weighted', 'raw')
             title(sprintf('Histogram / %s / n = %d / %d', name, length(err_wgt_vec), length(err_vec)), 'interpreter', 'none')
         end
         
-        function get_plot_all(name, optim)
+        function get_plot_all(name, optim, format)
             % Plot the logged data across all iterations.
+            
+            % extract format
+            scale = format.err.scale;
+            unit = format.err.unit;
             
             % extract the data for all iterations (error metric and timing)
             conv_vec = 1:length(optim);
@@ -194,20 +268,20 @@ classdef SolverLog < handle
             
             % plot the error metric
             subplot(1,2,1)
-            plot(conv_vec, 1e2.*err_conv_ok_vec, 'xg')
+            plot(conv_vec, scale.*err_conv_ok_vec, 'xg')
             hold('on')
-            plot(conv_vec, 1e2.*err_conv_ko_vec, 'xr')
+            plot(conv_vec, scale.*err_conv_ko_vec, 'xr')
             grid('on')
-            xlabel('i (#)')
-            ylabel('err (%)')
+            xlabel('iter (#)', 'interpreter', 'none')
+            ylabel(['err (' unit ')'], 'interpreter', 'none')
             title(sprintf('Convergence / %s', name), 'interpreter', 'none')
             
             % plot the solver timing data
             subplot(1,2,2)
             plot(conv_vec, seconds(t_solver_conv_vec), 'xb')
             grid('on')
-            xlabel('i (#)')
-            ylabel('t (s)')
+            xlabel('iter (#)', 'interpreter', 'none')
+            ylabel('t (s)', 'interpreter', 'none')
             title(sprintf('Time / %s', name), 'interpreter', 'none')
         end
     end
@@ -249,7 +323,7 @@ classdef SolverLog < handle
             % extract the parameter structure from a raw data (transformation and normalization)
             [n_pts, param, bnd, is_bound] = fct_param(x_scale);
             assert(n_pts==1, 'invalid size: solution')
-                        
+                                    
             % parse the solver message
             msg = splitlines(strtrim(msg));
             

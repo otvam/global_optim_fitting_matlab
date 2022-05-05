@@ -54,7 +54,7 @@ classdef SolverVar < handle
                 
                 param.(name)(idx,:) = x_tmp;
                 bnd.(name)(idx,:) = is_bound_tmp;
-                is_bound(i,:) = is_bound_tmp;
+                is_bound_opt(i,:) = is_bound_tmp;
             end
             
             % add the fixed variables
@@ -64,6 +64,7 @@ classdef SolverVar < handle
                 
                 param.(name)(idx,:) = x_tmp;
                 bnd.(name)(idx,:) = is_bound_tmp;
+                is_bound_fix(i,:) = is_bound_tmp;
             end
                         
             % order (otherwise random)
@@ -74,7 +75,7 @@ classdef SolverVar < handle
             n_pts = size(x_scale, 1);
 
             % check if any parameters are close to the bounds
-            is_bound = all(is_bound, 1);
+            is_bound = all(is_bound_opt, 1)&all(is_bound_fix, 1);
         end
         
         function [x_unclamp, lb_unclamp, ub_unclamp] = get_unclamp(self, x_scale, clamp_bnd)
@@ -139,7 +140,7 @@ classdef SolverVar < handle
             x = var.x;
             
             x = repmat(x, n_rep, 1);
-            is_bound = NaN(n_rep, 1);
+            is_bound = true(n_rep, 1);
         end
     end
 end

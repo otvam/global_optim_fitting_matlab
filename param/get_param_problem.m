@@ -18,7 +18,7 @@ var_vector = [1.5 ; 2.5];
 
 fct_err = @(param, n) get_fct_err(param, n, val, wgt);
 
-format.err = struct('format', '%.3f', 'scale', 1e2, 'unit', '%');
+format.err = struct('spec', '%.3f', 'scale', 1e2, 'unit', '%');
 format.param.cst_scalar = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 format.param.cst_vector = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 format.param.var_scalar = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
@@ -62,7 +62,7 @@ wgt = wgt_mat(:);
 
 % add noise to the dataset points
 if add_noise==true
-    noise = 0.05;
+    noise = 0.005;
     x = x.*(1+noise.*(2.*rand(size(x))-1));
     y = y.*(1+noise.*(2.*rand(size(x))-1));
 end

@@ -4,7 +4,7 @@ function solver = get_param_solver()
 % assign solver parameters
 solver.use_cache = true;
 solver.vec_cache = true;
-solver.n_cache = 10e3;
+solver.n_cache = 1e3;
 solver.tol_cache = 1e-12;
 
 solver.tol_bound = 0.05;
@@ -98,6 +98,8 @@ switch solver_type
         error('invalid data')
 end
 
+optimizer.log_iter = true;
+optimizer.log_final = true;
 optimizer.clamp_bnd = clamp_bnd;
 optimizer.recover_val = recover_val;
 optimizer.solver_type = solver_type;

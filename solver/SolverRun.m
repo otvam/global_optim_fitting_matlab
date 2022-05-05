@@ -35,6 +35,8 @@ classdef SolverRun < handle
                         
             % extract
             solver_type = optimizer.solver_type;
+            log_iter = optimizer.log_iter;
+            log_final = optimizer.log_final;
             clamp_bnd = optimizer.clamp_bnd;
             recover_val = optimizer.recover_val;
             options = optimizer.options;
@@ -57,18 +59,18 @@ classdef SolverRun < handle
             data_optim.fct_param = fct_param;
             data_optim.n_var = size(x0_scale, 2);
             
+            % create the logging object
+            obj_log = SolverLog(solver_type, log_iter, log_final, data_optim, self.format);
+
             % call the solver
-            [x_scale, optim] = SolverRun.get_solver(fct_sol, fct_unclamp, fct_clamp, x0_scale, options, solver_type, data_optim);
+            [x_scale, optim] = SolverRun.get_solver(fct_sol, fct_unclamp, fct_clamp, x0_scale, options, solver_type, obj_log);
         end
     end
     
     %% private static api
     methods (Static, Access = private)
-        function [x_scale, optim] = get_solver(fct_sol, fct_unclamp, fct_clamp, x0_scale, options, solver_type, data_optim)
+        function [x_scale, optim] = get_solver(fct_sol, fct_unclamp, fct_clamp, x0_scale, options, solver_type, obj_log)
             % Call a solver and manage the logging.
-            
-            % create the logging object
-            obj_log = SolverLog(solver_type, data_optim);
             
             % logging function to be called after each solver iteration
             fct_iter = @(x_unclamp, err, n_iter, n_eval, msg) obj_log.get_iter(x_unclamp, err, n_iter, n_eval, msg);
