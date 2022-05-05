@@ -37,30 +37,31 @@ end
 
 function [val, wgt] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, add_noise)
 
-% get grid
+% get the points composing the dataset
 x_vec = linspace(1, 5, 10);
 y_vec = linspace(1, 5, 10);
-noise = 0.05;
-
-% get point and weights
 [x_mat, y_mat] = ndgrid(x_vec, y_vec);
+
+% get the weigts, double the weight for the edges
 wgt_mat = ones(length(x_vec), length(y_vec));
 wgt_mat(1,:) = 2;
 wgt_mat(end,:) = 2;
 wgt_mat(:,1) = 2;
 wgt_mat(:,end) = 2;
 
-% flatten
+% flatten the dataset
 x = x_mat(:);
 y = y_mat(:);
 wgt = wgt_mat(:);
 
-% add noise
+% add noise to the dataset points
 if add_noise==true
+    noise = 0.05;
     x = x.*(1+noise.*(2.*rand(size(x))-1));
     y = y.*(1+noise.*(2.*rand(size(x))-1));
 end
 
+% compute the value with a dummy model
 val = 0;
 val = val+var_scalar.*(cst_scalar+x.^2+y.^2);
 val = val+abs(x+cst_vector(1,:)).^var_vector(1,:);

@@ -47,11 +47,11 @@ use_cache = solver.use_cache;
 vec_cache = solver.vec_cache;
 tol_bound = solver.tol_bound;
 
-% objected managing the variables (name, bounds, transformation, normalization, etc.)
+% object managing the variables (name, bounds, transformation, normalization, etc.)
 fprintf('get var\n')
 obj_var = SolverVar(var_opt, var_fix, tol_bound);
 
-% cache object for the error function
+% object managing the cache for the error function
 fprintf('get cache\n')
 fct_err_cache = @(x_scale) get_err_cache(x_scale, obj_var, fct_err);
 obj_cache = SolverCache(fct_err_cache, use_cache, vec_cache, n_cache, tol_cache);

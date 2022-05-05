@@ -100,9 +100,9 @@ switch solver_type
 end
 
 optimizer.error_norm = error_norm;
-optimizer.solver_type = solver_type;
 optimizer.clamp_bnd = clamp_bnd;
 optimizer.recover_val = recover_val;
+optimizer.solver_type = solver_type;
 optimizer.options = options;
 
 end
