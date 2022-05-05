@@ -17,31 +17,31 @@ classdef SolverList < handle
             % call the specified solver
             switch solver_type
                 case 'init'
-                    [x, is_valid, n_iter, n_eval, msg] = SolverList.get_init(fct_sol, fct_iter, x0, lb, ub, options);
+                    [x, err, is_valid, n_iter, n_eval, msg] = SolverList.get_init(fct_sol, fct_iter, x0, lb, ub, options);
                 case 'fminunc'
-                    [x, is_valid, n_iter, n_eval, msg] = SolverList.get_fminunc(fct_sol, fct_iter, x0, options);
+                    [x, err, is_valid, n_iter, n_eval, msg] = SolverList.get_fminunc(fct_sol, fct_iter, x0, options);
                 case 'fminsearch'
-                    [x, is_valid, n_iter, n_eval, msg] = SolverList.get_fminsearch(fct_sol, fct_iter, x0, options);
+                    [x, err, is_valid, n_iter, n_eval, msg] = SolverList.get_fminsearch(fct_sol, fct_iter, x0, options);
                 case 'fmincon'
-                    [x, is_valid, n_iter, n_eval, msg] = SolverList.get_fmincon(fct_sol, fct_iter, x0, lb, ub, options);
+                    [x, err, is_valid, n_iter, n_eval, msg] = SolverList.get_fmincon(fct_sol, fct_iter, x0, lb, ub, options);
                 case 'surrogateopt'
-                    [x, is_valid, n_iter, n_eval, msg] = SolverList.get_surrogateopt(fct_sol, fct_iter, x0, lb, ub, options);
+                    [x, err, is_valid, n_iter, n_eval, msg] = SolverList.get_surrogateopt(fct_sol, fct_iter, x0, lb, ub, options);
                 case 'particleswarm'
-                    [x, is_valid, n_iter, n_eval, msg] = SolverList.get_particleswarm(fct_sol, fct_iter, x0, lb, ub, options);
+                    [x, err, is_valid, n_iter, n_eval, msg] = SolverList.get_particleswarm(fct_sol, fct_iter, x0, lb, ub, options);
                 case 'ga'
-                    [x, is_valid, n_iter, n_eval, msg] = SolverList.get_ga(fct_sol, fct_iter, x0, lb, ub, options);
+                    [x, err, is_valid, n_iter, n_eval, msg] = SolverList.get_ga(fct_sol, fct_iter, x0, lb, ub, options);
                 otherwise
                     error('invalid data')
             end
             
             % call the display and logging function with the final values
-            fct_final(x, n_iter, n_eval, msg, is_valid);
+            fct_final(x, err, n_iter, n_eval, msg, is_valid);
         end
     end
     
     %% private static api
     methods (Static, Access = private)
-        function [x, is_valid, n_iter, n_eval, msg] = get_init(fct_sol, fct_iter, x0, lb, ub, options)
+        function [x, err, is_valid, n_iter, n_eval, msg] = get_init(fct_sol, fct_iter, x0, lb, ub, options)
             % Special dummy solver for finding several reasonable initial value.
             
             % solver need contrained variables
@@ -72,22 +72,24 @@ classdef SolverList < handle
             % check if the required number of solution is found
             if size(x, 1)==0
                 x = x0;
+                err = fct_sol(x0);
                 is_valid = false;
                 msg = 'no solution found';
             elseif size(x, 1)<n_tot
                 is_valid = false;
                 msg = 'number of solutions is not sufficient';
             else
-                [~, idx] = sort(err);
+                [err, idx] = sort(err);
                 x = x(idx,:);
                 x = x(1:n_tot,:);
+                err = err(1:n_tot,:);
 
                 is_valid = true;
                 msg = 'number of solutions is sufficient';
             end
         end
         
-        function [x, is_valid, n_iter, n_eval, msg] = get_fminunc(fct_sol, fct_iter, x0, options)
+        function [x, err, is_valid, n_iter, n_eval, msg] = get_fminunc(fct_sol, fct_iter, x0, options)
             % Call the MATLAB fminunc solver.
             
             % solver need a single finite initial value
@@ -99,7 +101,7 @@ classdef SolverList < handle
             % call the solver
             options = optimset(options, 'Display', 'off');
             options = optimset(options, 'OutputFcn', @(x, optim, state) SolverList.get_outfun_grad(x, optim, state, fct_iter));
-            [x, ~, exitflag, output] = fminunc(fct_sol, x0, options);
+            [x, err, exitflag, output] = fminunc(fct_sol, x0, options);
             
             % check convergence
             is_valid = any(exitflag==[1 2 3 5]);
@@ -108,7 +110,7 @@ classdef SolverList < handle
             msg = output.message;
         end
         
-        function [x, is_valid, n_iter, n_eval, msg] = get_fminsearch(fct_sol, fct_iter, x0, options)
+        function [x, err, is_valid, n_iter, n_eval, msg] = get_fminsearch(fct_sol, fct_iter, x0, options)
             % Call the MATLAB fminsearch solver.
             
             % solver need a single finite initial value
@@ -120,7 +122,7 @@ classdef SolverList < handle
             % call the solver
             options = optimset(options, 'Display', 'off');
             options = optimset(options, 'OutputFcn', @(x, optim, state) SolverList.get_outfun_grad(x, optim, state, fct_iter));
-            [x, ~, exitflag, output] = fminsearch(fct_sol, x0, options);
+            [x, err, exitflag, output] = fminsearch(fct_sol, x0, options);
             
             % check convergence
             is_valid = any(exitflag==1);
@@ -129,7 +131,7 @@ classdef SolverList < handle
             msg = output.message;
         end
         
-        function [x, is_valid, n_iter, n_eval, msg] = get_fmincon(fct_sol, fct_iter, x0, lb, ub, options)
+        function [x, err, is_valid, n_iter, n_eval, msg] = get_fmincon(fct_sol, fct_iter, x0, lb, ub, options)
             % Call the MATLAB fmincon solver.
             
             % solver need a single finite initial value
@@ -141,7 +143,7 @@ classdef SolverList < handle
             % call the solver
             options = optimset(options, 'Display', 'off');
             options = optimset(options, 'OutputFcn', @(x, optim, state) SolverList.get_outfun_grad(x, optim, state, fct_iter));
-            [x, ~, exitflag, output] = fmincon(fct_sol, x0, [], [], [], [], lb, ub, [], options);
+            [x, err, exitflag, output] = fmincon(fct_sol, x0, [], [], [], [], lb, ub, [], options);
             
             % check convergence
             is_valid = any(exitflag==[1 2 3 4 5]);
@@ -150,7 +152,7 @@ classdef SolverList < handle
             msg = output.message;
         end
         
-        function [x, is_valid, n_iter, n_eval, msg] = get_surrogateopt(fct_sol, fct_iter, x0, lb, ub, options)
+        function [x, err, is_valid, n_iter, n_eval, msg] = get_surrogateopt(fct_sol, fct_iter, x0, lb, ub, options)
             % Call the MATLAB surrogateopt solver.
             
             % solver need contrained variables
@@ -167,7 +169,7 @@ classdef SolverList < handle
             if is_init==true
                 options = optimoptions(options, 'InitialPoints', x0);
             end
-            [x, ~, exitflag, output] = surrogateopt(fct_sol, lb, ub, [], [], [], [], [], options);
+            [x, err, exitflag, output] = surrogateopt(fct_sol, lb, ub, [], [], [], [], [], options);
             
             % check convergence
             is_valid = any(exitflag==[1 3 10]);
@@ -176,7 +178,7 @@ classdef SolverList < handle
             msg = output.message;
         end
         
-        function [x, is_valid, n_iter, n_eval, msg] = get_particleswarm(fct_sol, fct_iter, x0, lb, ub, options)
+        function [x, err, is_valid, n_iter, n_eval, msg] = get_particleswarm(fct_sol, fct_iter, x0, lb, ub, options)
             % Call the MATLAB particleswarm solver.
             
             % solver has no particular constraints
@@ -192,7 +194,7 @@ classdef SolverList < handle
             if is_init==true
                 options = optimoptions(options, 'InitialSwarmMatrix', x0);
             end
-            [x, ~, exitflag, output] = particleswarm(fct_sol, n_var, lb, ub, options);
+            [x, err, exitflag, output] = particleswarm(fct_sol, n_var, lb, ub, options);
             
             % check convergence
             is_valid = any(exitflag==1);
@@ -201,7 +203,7 @@ classdef SolverList < handle
             msg = output.message;
         end
         
-        function [x, is_valid, n_iter, n_eval, msg] = get_ga(fct_sol, fct_iter, x0, lb, ub, options)
+        function [x, err, is_valid, n_iter, n_eval, msg] = get_ga(fct_sol, fct_iter, x0, lb, ub, options)
             % Call the MATLAB ga solver.
             
             % solver has no particular constraints
@@ -217,7 +219,7 @@ classdef SolverList < handle
             if is_init==true
                 options = optimoptions(options, 'InitialPopulationMatrix', x0);
             end
-            [x, ~, exitflag, output] = ga(fct_sol, n_var, [], [], [], [], lb, ub, [], [], options);
+            [x, err, exitflag, output] = ga(fct_sol, n_var, [], [], [], [], lb, ub, [], [], options);
             
             is_valid = any(exitflag==[1 3 4 5]);
             n_iter = output.generations;
@@ -233,9 +235,10 @@ classdef SolverList < handle
             % extract
             n_iter = optim.iteration;
             n_eval = optim.funccount;
-            
+            err = optim.fval;
+                        
             % call the display and logging function
-            fct_iter(x, n_iter, n_eval, msg);
+            fct_iter(x, err, n_iter, n_eval, msg);
             
             % do not stop the solver
             stop = false;
@@ -247,10 +250,11 @@ classdef SolverList < handle
             % extract
             n_iter = optim.iteration;
             n_eval = optim.funccount;
-            x = optim.bestx;
+            x = [optim.bestx ; optim.swarm];
+            err = [optim.bestfval ; optim.swarmfvals];
             
             % call the display and logging function
-            fct_iter(x, n_iter, n_eval, msg);
+            fct_iter(x, err, n_iter, n_eval, msg);
             
             % do not stop the solver
             stop = false;
@@ -263,9 +267,10 @@ classdef SolverList < handle
             n_iter = optim.Generation;
             n_eval = optim.FunEval;
             x = optim.Population;
+            err = optim.Score;
             
             % call the display and logging function
-            fct_iter(x, n_iter, n_eval, msg);
+            fct_iter(x, err, n_iter, n_eval, msg);
             
             % do not stop the solver
             optchanged = false;
@@ -286,7 +291,7 @@ classdef SolverList < handle
             err = [err ; err_tmp(idx,:)];
             
             % call the display and logging function
-            fct_iter(x, n_iter, n_eval, 'iter');
+            fct_iter(x, err, n_iter, n_eval, 'iter');
         end
     end
 end

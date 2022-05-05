@@ -40,7 +40,7 @@ classdef SolverCache < handle
         
         function [err, wgt] = get_eval(self, x)
             % Evaluate the error function.
-            
+                        
             if self.use_cache==true
                 [err, wgt] = self.get_eval_cache(x);
             else

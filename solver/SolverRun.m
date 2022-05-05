@@ -55,8 +55,8 @@ classdef SolverRun < handle
             
             % get logger
             obj_log = SolverLog(solver_type, data_optim);
-            fct_iter = @(x_unclamp, n_iter, n_eval, msg) obj_log.get_iter(x_unclamp, n_iter, n_eval, msg);
-            fct_final = @(x_unclamp, n_iter, n_eval, msg, is_valid) obj_log.get_final(x_unclamp, n_iter, n_eval, msg, is_valid);
+            fct_iter = @(x_unclamp, err, n_iter, n_eval, msg) obj_log.get_iter(x_unclamp, err, n_iter, n_eval, msg);
+            fct_final = @(x_unclamp, err, n_iter, n_eval, msg, is_valid) obj_log.get_final(x_unclamp, err, n_iter, n_eval, msg, is_valid);
             
             % umclamp data
             [x0_unclamp, lb_unclamp, ub_unclamp] = fct_unclamp(x0_scale);

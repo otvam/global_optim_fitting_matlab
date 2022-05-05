@@ -23,7 +23,7 @@ classdef SolverLog < handle
             
         end
         
-        function get_iter(self, x_unclamp, n_iter, n_eval, msg)
+        function get_iter(self, x_unclamp, err, n_iter, n_eval, msg)
             % Get the initial values.
             
             t_now = datetime('now');
@@ -34,14 +34,14 @@ classdef SolverLog < handle
             is_valid = true;
             msg = sprintf('intermediate results\nstate: %s', msg);
             
-            optim_tmp = SolverLog.get_log(x_unclamp, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
+            optim_tmp = SolverLog.get_log(x_unclamp, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
             self.optim{end+1} = optim_tmp;
             
             name = sprintf('iter / %s / n = %d / %d', self.solver_type, n_iter, n_eval);
             SolverLog.get_disp(name, self.optim{end})
         end
         
-        function get_final(self, x_unclamp, n_iter, n_eval, msg, is_valid)
+        function get_final(self, x_unclamp, err, n_iter, n_eval, msg, is_valid)
             % Get the initial values.
             
             t_now = datetime('now');
@@ -51,7 +51,7 @@ classdef SolverLog < handle
             
             msg = sprintf('final results\n%s', msg);
             
-            optim_tmp = SolverLog.get_log(x_unclamp, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
+            optim_tmp = SolverLog.get_log(x_unclamp, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
             self.optim{end+1} = optim_tmp;
             
             name = sprintf('final / %s', self.solver_type);
@@ -196,7 +196,7 @@ classdef SolverLog < handle
     
     %% private static api
     methods(Static, Access = private)
-        function optim = get_log(x_unclamp, is_valid, n_iter, n_eval, msg, t_solver, t_iter, data_optim)
+        function optim = get_log(x_unclamp, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, data_optim)
             % Create the optim struct.
             
             % extract
@@ -206,32 +206,40 @@ classdef SolverLog < handle
             error_norm = data_optim.error_norm;
             n_var = data_optim.n_var;
             
-            % handle empty points
-            if isempty(x_unclamp)==true
-                x_unclamp = NaN(1, n_var);
-            end
-            
-            % get error
+            % clamp point
             x_scale = fct_clamp(x_unclamp);
-            [err_mat, wgt_mat] = fct_err(x_scale);
-            err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);
-            pop_valid = isfinite(err);
             
-            [err, idx] = min(err);
-            x_scale = x_scale(idx,:); 
-            err_vec = err_mat(idx,:); 
-            wgt_vec = wgt_mat(idx,:); 
-                        
-            % handle invalid points
-            if isfinite(err)==false
+            % handle empty points
+            if isempty(x_scale)==true
                 x_scale = NaN(1, n_var);
+                pop_valid = [];
+                
                 err_wgt_vec = NaN;
                 err_vec = NaN;
                 wgt_vec = NaN;
+                err = NaN;
             else
-                err_wgt_vec = repelem(err_vec, round(wgt_vec));
+                % select best points
+                [~, idx_best] = min(err);
+                pop_valid = isfinite(err);
+                x_scale = x_scale(idx_best,:);
+                
+                % get error
+                [err_vec, wgt_vec] = fct_err(x_scale);
+                err = SolverUtils.get_norm(err_vec, wgt_vec, error_norm);
+                
+                % handle invalid points
+                if isfinite(err)==false
+                    x_scale = NaN(1, n_var);
+                    err_wgt_vec = NaN;
+                    err_vec = NaN;
+                    wgt_vec = NaN;
+                    err = NaN;
+                else
+                    err_wgt_vec = repelem(err_vec, round(wgt_vec));
+                end
             end
-                        
+            
             % parse point
             [n_pts, param, bnd, is_bound] = fct_param(x_scale);
             assert(n_pts==1, 'invalid size: solution')
