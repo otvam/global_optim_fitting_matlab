@@ -1,4 +1,4 @@
-function [param, optim] = get_solver(fct_vec, var_opt, var_fix, solver)
+function [param, optim] = get_solver(fct_err, var_opt, var_fix, solver)
 % Fit parameters with respect to a dataset.
 %
 %    This function provides a common interface for different solvers
@@ -27,7 +27,7 @@ function [param, optim] = get_solver(fct_vec, var_opt, var_fix, solver)
 %        - plots
 %
 %    Parameters:
-%        fct_vec (handle): error function for determining the parameters
+%        fct_err (handle): error function for determining the parameters
 %        var_opt (cell): description of the parameters to be fitted
 %        var_fix (cell): description of the parameters with fixed values
 %        solver (struct): structure describing the solver parameters
@@ -47,14 +47,14 @@ use_cache = solver.use_cache;
 vec_cache = solver.vec_cache;
 tol_bound = solver.tol_bound;
 
-% objected managing the variables (name, scaling, normalization, etc.)
+% objected managing the variables (name, bounds, transformation, normalization, etc.)
 fprintf('get var\n')
 obj_var = SolverVar(var_opt, var_fix, tol_bound);
 
 % cache object for the error function
 fprintf('get cache\n')
-fct_vec_cache = @(x_scale) get_vec_cache(x_scale, obj_var, fct_vec);
-obj_cache = SolverCache(fct_vec_cache, use_cache, vec_cache, n_cache, tol_cache);
+fct_err_cache = @(x_scale) get_vec_cache(x_scale, obj_var, fct_err);
+obj_cache = SolverCache(fct_err_cache, use_cache, vec_cache, n_cache, tol_cache);
 
 % object interfacing the different solvers
 fprintf('get interface\n')
@@ -67,7 +67,7 @@ for i=1:length(optimizer)
     [x_scale, optim{i}] = obj_interface.get_run(x_scale, optimizer{i});
 end
 
-% extract the parameter structure from the raw matrix (unscale, denormalized, etc.)
+% extract the parameter structure from a raw matrix (transformation and normalization)
 [n_pts, param] = obj_var.get_param(x_scale);
 
 % solution should be a single parameter combination
@@ -75,19 +75,19 @@ assert(n_pts==1, 'invalid solution')
 
 end
 
-function [err_vec, wgt_vec] = get_vec_cache(x_scale, obj_var, fct_vec)
+function [err_mat, wgt_mat] = get_vec_cache(x_scale, obj_var, fct_err)
 % Error function used by the solver (throught the cache).
 
-% extract the parameter structure from the raw matrix (unscale, denormalized, etc.)
+% extract the parameter structure from a raw matrix (transformation and normalization)
 [n_pts, param] = obj_var.get_param(x_scale);
 
 % call the provided error function
-[err_vec, wgt_vec] = fct_vec(param, n_pts);
+[err_mat, wgt_mat] = fct_err(param, n_pts);
 
 % reshape and check size
-err_vec = err_vec.';
-wgt_vec = wgt_vec.';
-assert(size(err_vec, 1)==n_pts, 'invalid size: err_vec')
-assert(size(wgt_vec, 1)==n_pts, 'invalid size: wgt_vec')
+err_mat = err_mat.';
+wgt_mat = wgt_mat.';
+assert(size(err_mat, 1)==n_pts, 'invalid size: err_mat')
+assert(size(wgt_mat, 1)==n_pts, 'invalid size: wgt_mat')
 
 end

@@ -3,7 +3,7 @@ classdef SolverVar < handle
     %
     %    Abstraction layer (high level parameter structure vs. raw matrix).
     %    Variable transformation (linear, quadratic, logarithmic)
-    %    Variable normalization (betweem zero and one)
+    %    Variable normalization (between zero and one)
     %    Transform bounded variables to uncontrained variable with sine transformation
     %
     %    Thomas Guillod.
@@ -11,38 +11,44 @@ classdef SolverVar < handle
     
     %% properties
     properties (SetAccess = private, GetAccess = private)
-        var_opt
-        var_fix
-        tol_bound
+        var_opt % description of the parameters to be fitted
+        var_fix % description of the parameters with fixed values
+        tol_bound % tolerance for determining if a value is close to a bound
         
-        x0_scale
-        lb_scale
-        ub_scale
+        x0_scale % initial values (scaled)
+        lb_scale % lower bounds (scaled)
+        ub_scale % upper bounds (scaled)
     end
     
     %% public
     methods (Access = public)
         function self = SolverVar(var_opt, var_fix, tol_bound)
+            % Constructor.
+
             % set data
             self.var_opt = var_opt;
             self.var_fix = var_fix;
             self.tol_bound = tol_bound;
             
-            % init data
+            % get the scaled data
             for i=1:length(self.var_opt)
                 [self.x0_scale(:,i), self.lb_scale(i), self.ub_scale(i)] = SolverVar.get_init(self.var_opt{i});
             end
         end
         
         function x0_scale = get_x0_scale(self)
-            % Get the initial values.
+            % Get the initial scaled values.
             
             x0_scale = self.x0_scale;
         end
         
         function [n_pts, param, bnd, is_bound] = get_param(self, x_scale)
-            % Get the parameters and bounds.
+            % Extract the parameter structure from a raw matrix.
+            %    - unscale the values (transformation and normalization)
+            %    - check if the values are closed to the bounds
+            %    - assign the results in structs
             
+            % handle the fitting variables
             for i=1:length(self.var_opt)
                 [name, idx, x_tmp, is_bound_tmp] = SolverVar.get_param_opt(x_scale(:,i), self.var_opt{i}, self.lb_scale(i), self.ub_scale(i), self.tol_bound);
                 
@@ -51,6 +57,7 @@ classdef SolverVar < handle
                 is_bound(i,:) = is_bound_tmp;
             end
             
+            % add the fixed variables
             n_rep = size(x_scale, 1);
             for i=1:length(self.var_fix)
                 [name, idx, x_tmp, is_bound_tmp] = SolverVar.get_param_fix(self.var_fix{i}, n_rep);
@@ -60,14 +67,18 @@ classdef SolverVar < handle
             end
             
             % order (otherwise random)
-            n_pts = size(x_scale, 1);
             param = orderfields(param);
             bnd = orderfields(bnd);
+
+            % get the number of parameter combinations
+            n_pts = size(x_scale, 1);
+
+            % check if any parameters are close to the bounds
             is_bound = all(is_bound, 1);
         end
         
         function [x_unclamp, lb_unclamp, ub_unclamp] = get_unclamp(self, x_scale, clamp_bnd)
-            % Unclamp the variables.
+            % Transform bounded variables into unconstrained variables with sine transformation.
             
             for i=1:size(x_scale, 2)
                 [x_unclamp(:,i), lb_unclamp(i), ub_unclamp(i)] = SolverUtils.get_var_unclamp(x_scale(:,i), clamp_bnd, self.lb_scale(i), self.ub_scale(i));
@@ -75,7 +86,7 @@ classdef SolverVar < handle
         end
         
         function x_scale = get_clamp(self, x_unclamp, clamp_bnd)
-            % Clamp the variables.
+            % Transform unconstrained variables into bounded variables with sine transformation.
             
             for i=1:size(x_unclamp, 2)
                 x_scale(:,i) = SolverUtils.get_var_clamp(x_unclamp(:,i), clamp_bnd, self.lb_scale(i), self.ub_scale(i));
@@ -83,25 +94,26 @@ classdef SolverVar < handle
         end
     end
     
-    %% private api
+    %% private static api
     methods(Static, Access = private)
         function [x0_scale, lb_scale, ub_scale] = get_init(var)
-            % Get the normalized initial points, lower bound, and upper bound.
+            % Scale a variable (bounds, transformation, and normalization).
             
-            % extract the values from the cell array
+            % extract
             x0 = var.x0;
             lb = var.lb;
             ub = var.ub;
             scale = var.scale;
             norm = var.norm;
             
-            % scale and assign the results to vectors
+            % scale the variable
             [x0_scale, lb_scale, ub_scale] =  SolverUtils.get_var_scale(x0, lb, ub, scale, norm);
         end
         
         function [name, idx, x, is_bound] = get_param_opt(x_scale, var, lb_scale, ub_scale, tol_bound)
-            % Get the parameters for an optimization variable.
+            % Unscale a variable (bounds, transformation, and normalization).
             
+            % extract
             idx = var.idx;
             name = var.name;
             lb = var.lb;
@@ -109,16 +121,18 @@ classdef SolverVar < handle
             scale = var.scale;
             norm = var.norm;
             
+            % check if any parameters are close to the bounds 
             tol = tol_bound.*(ub_scale-lb_scale);
             lb_scale_tol = lb_scale+tol;
             ub_scale_tol = ub_scale-tol;
-            
             is_bound = (x_scale>lb_scale_tol)&(x_scale<ub_scale_tol);
+
+            % unscale the variable
             x = SolverUtils.get_var_unscale(x_scale, lb, ub, scale, norm);
         end
         
         function [name, idx, x, is_bound] = get_param_fix(var, n_rep)
-            % Get the parameters for a fixed variable.
+            % Get the values of a fixed parameter.
             
             idx = var.idx;
             name = var.name;

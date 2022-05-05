@@ -1,51 +1,72 @@
 classdef SolverUtils < handle
+    % Static class with various utils.
+    %
+    %    Computating error metrics.
+    %    Scaling of variables.
+    %    Display data.
+    %
+    %    Thomas Guillod.
+    %    2021-2022 - BSD License.
+
     %% error
     methods(Static, Access = public)
-        function err = get_norm(err_vec, wgt_vec, norm)
-            % Get the norm on a error vector.
+        function err = get_norm(err_mat, wgt_mat, norm)
+            % Get the norm on a error vector with specified weights.
             
+            % compute the norm
             if isfinite(norm)
-                err_wgt_vec = abs(err_vec).*(wgt_vec.^(1./norm));
-                n_elem = sum(wgt_vec, 2);
-                err = (sum(err_wgt_vec.^norm, 2)./n_elem).^(1./norm);
+                err_wgt_mat = abs(err_mat).*(wgt_mat.^(1./norm));
+                n_elem = sum(wgt_mat, 2);
+                err = (sum(err_wgt_mat.^norm, 2)./n_elem).^(1./norm);
             elseif isinf(norm)
-                err = max(abs(err_vec), [], 2);
+                err = max(abs(err_mat), [], 2);
             else
                 error('invalid norm')
             end
             
-            idx = any(isfinite(err_vec)==false, 2);
+            % check for invalid data
+            idx = any(isfinite(err_mat)==false, 2);
             err(idx) = NaN;
         end
         
-        function err = get_percentile(err_vec, percentile)
+        function err = get_percentile(err_mat, percentile)
             % Get the percentile on a error vector.
             
-            err = quantile(abs(err_vec), percentile, 2);
+            % compute the specified percentile
+            err = quantile(abs(err_mat), percentile, 2);
             
-            idx = any(isfinite(err_vec)==false, 2);
+            % check for invalid data
+            idx = any(isfinite(err_mat)==false, 2);
             err(idx) = NaN;
         end
     end
     
-    %% clamp
+    %% scaling
     methods(Static, Access = public)
         function [x_unclamp, lb_unclamp, ub_unclamp] = get_var_unclamp(x, clamp_bnd, lb, ub)
-            % Unclamp a variable (sine tranformation).
+            % Transform bounded a variable into a unconstrained variable with sine transformation.
             
             if clamp_bnd==true
+                % the new variable is unconstrained
                 lb_unclamp = -Inf;
                 ub_unclamp = +Inf;
                 
                 if isinf(lb)&&isinf(ub)
+                    % do nothing as the variable is already unconstrained
                     x_unclamp = x;
                 elseif isinf(lb)
+                    % quadratic transformation for single-sided bound
                     x_unclamp = sqrt(x-lb);
                 elseif isinf(ub)
+                    % quadratic transformation for single-sided bound
                     x_unclamp = sqrt(ub-x);
                 else
+                    % sine transformation for double-sided bounds
                     x_unclamp = 2.*(x-lb)./(ub-lb)-1;
-                    x_unclamp = 2.*pi+asin(x_unclamp);
+                    x_unclamp = asin(x_unclamp);
+
+                    % shift to avoid numerical issue around zero
+                    x_unclamp = 2.*pi+x_unclamp;
                 end
             else
                 x_unclamp = x;
@@ -53,26 +74,30 @@ classdef SolverUtils < handle
                 ub_unclamp = ub;
             end
             
+            % avoid numerical issue at the bounds
             if x_unclamp<=lb_unclamp
                 x_unclamp = lb_unclamp+eps;
             end
-            
             if x_unclamp>=ub_unclamp
                 x_unclamp = ub_unclamp-eps;
             end
         end
         
         function x = get_var_clamp(x_unclamp, clamp_bnd, lb, ub)
-            % Clamp a variable (sine tranformation).
+            % Transform a unconstrained variable into a bounded variable with sine transformation.
             
             if clamp_bnd==true
                 if isinf(lb)&&isinf(ub)
+                    % do nothing as the variable is already unconstrained
                     x = x_unclamp;
                 elseif isinf(lb)
+                    % quadratic transformation for single-sided bound
                     x = lb+x_unclamp.^2;
                 elseif isinf(ub)
+                    % quadratic transformation for single-sided bound
                     x = ub-x_unclamp.^2;
                 else
+                    % sine transformation for double-sided bounds
                     x = (sin(x_unclamp)+1)./2;
                     x = x.*(ub-lb)+lb;
                 end
@@ -80,13 +105,11 @@ classdef SolverUtils < handle
                 x = x_unclamp;
             end
         end
-    end
-    
-    %% scale
-    methods(Static, Access = public)
+
         function [x0_scale, lb_scale, ub_scale] = get_var_scale(x0, lb, ub, scale, norm)
-            % Normalize a variable.
+            % Scale a variable (transformation and normalization).
             
+            % get the variable transformation
             switch scale
                 case 'lin'
                     fct_scale = @(x) x;
@@ -100,10 +123,12 @@ classdef SolverUtils < handle
                     error('invalid data')
             end
             
+            % transform the variable and the bounds
             x0_scale = fct_scale(x0);
             lb_scale = fct_scale(lb);
             ub_scale = fct_scale(ub);
             
+            % normalize if required
             if norm==true
                 fct = @(x) (x-lb)./(ub-lb);
                 
@@ -114,8 +139,9 @@ classdef SolverUtils < handle
         end
         
         function x = get_var_unscale(x_scale, lb, ub, scale, norm)
-            % Denormalize a variable.
+            % Unscale a variable (transformation and normalization).
             
+            % get the variable transformation
             switch scale
                 case 'lin'
                     fct_scale = @(x) x;
@@ -133,21 +159,24 @@ classdef SolverUtils < handle
                     error('invalid data')
             end
 
+            % denormalize if required
             if norm==true
                 lb_scale = fct_scale(lb);
                 ub_scale = fct_scale(ub);
                 x_scale = lb_scale+x_scale.*(ub_scale-lb_scale);
             end
             
+            % revert the variable transformation
             x = fct_unscale(x_scale);
         end
     end
     
-    %% disp
+    %% display
     methods(Static, Access = public)
         function txt = get_disp_vec(vec)
             % Parse a vector to string.
             
+            % parse each elements
             for i=1:length(vec)
                 if islogical(vec(i))
                     txt{i} = mat2str(vec(i));
@@ -158,6 +187,7 @@ classdef SolverUtils < handle
                 end
             end
             
+            % assemble the string
             if isscalar(vec)
                 txt = txt{:};
             else
@@ -166,10 +196,9 @@ classdef SolverUtils < handle
         end
         
         function txt = get_disp_nan(vec)
-            % Parse a vector to NaN.
+            % Parse a vector to a NaN string.
             
             txt = sprintf('NaN(%d, %d)', size(vec, 1), size(vec, 2));
-            
         end
     end
 end

@@ -76,10 +76,10 @@ classdef SolverInterface < handle
             
             % evaluate points
             x_scale = fct_clamp(x_unclamp);
-            [err_vec, wgt_vec] = fct_opt(x_scale);
+            [err_mat, wgt_mat] = fct_opt(x_scale);
                                                                         
             % get error
-            err = SolverUtils.get_norm(err_vec, wgt_vec, error_norm);
+            err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);
                         
             % recover from bad values
             idx = isfinite(err)==false;

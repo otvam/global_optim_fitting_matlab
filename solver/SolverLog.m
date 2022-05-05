@@ -213,19 +213,21 @@ classdef SolverLog < handle
             
             % get error
             x_scale = fct_clamp(x_unclamp);
-            [err_vec, wgt_vec] = fct_opt(x_scale);
-            err = SolverUtils.get_norm(err_vec, wgt_vec, error_norm);
+            [err_mat, wgt_mat] = fct_opt(x_scale);
+            err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);
             pop_valid = isfinite(err);
             
             [err, idx] = min(err);
             x_scale = x_scale(idx,:); 
-            err_vec = err_vec(idx,:); 
-            wgt_vec = wgt_vec(idx,:); 
+            err_vec = err_mat(idx,:); 
+            wgt_vec = wgt_mat(idx,:); 
                         
             % handle invalid points
             if isfinite(err)==false
                 x_scale = NaN(1, n_var);
                 err_wgt_vec = NaN;
+                err_vec = NaN;
+                wgt_vec = NaN;
             else
                 err_wgt_vec = repelem(err_vec, round(wgt_vec));
             end
