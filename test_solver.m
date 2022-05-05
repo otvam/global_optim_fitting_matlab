@@ -2,6 +2,7 @@ function test_solver()
 
 close('all')
 addpath('solver')
+addpath('param')
 
 solver = get_param_solver();
 [var_opt, var_fix, fct_err] = get_param_problem();
