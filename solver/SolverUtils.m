@@ -194,11 +194,5 @@ classdef SolverUtils < handle
                 txt = sprintf('[%s]', strjoin(txt, ' ; '));
             end
         end
-        
-        function txt = get_disp_nan(vec)
-            % Parse a vector to a NaN string.
-            
-            txt = sprintf('NaN(%d, %d)', size(vec, 1), size(vec, 2));
-        end
     end
 end

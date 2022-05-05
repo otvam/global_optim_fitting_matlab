@@ -2,23 +2,22 @@ function solver = get_param_solver()
 % Select the fitting option and variables.
 
 % assign solver parameters
-solver.tol_bound = 0.05;
 solver.use_cache = true;
 solver.vec_cache = true;
 solver.n_cache = 10e3;
 solver.tol_cache = 1e-12;
 
-% error norm
-error_norm = 10;
+solver.tol_bound = 0.05;
+solver.error_norm = 8.0;
 
 solver.optimizer = {};
-solver.optimizer{end+1} = get_optimizer('init', error_norm);
-solver.optimizer{end+1} = get_optimizer('ga', error_norm);
-solver.optimizer{end+1} = get_optimizer('fminsearch', error_norm);
+solver.optimizer{end+1} = get_optimizer('init');
+solver.optimizer{end+1} = get_optimizer('ga');
+solver.optimizer{end+1} = get_optimizer('fminsearch');
 
 end
 
-function optimizer = get_optimizer(solver_type, error_norm)
+function optimizer = get_optimizer(solver_type)
 % Select the fitting option and variables.
 
 % fitting options (MATLAB optimizer option)
@@ -99,7 +98,6 @@ switch solver_type
         error('invalid data')
 end
 
-optimizer.error_norm = error_norm;
 optimizer.clamp_bnd = clamp_bnd;
 optimizer.recover_val = recover_val;
 optimizer.solver_type = solver_type;

@@ -139,12 +139,7 @@ classdef SolverLog < handle
             field = fieldnames(optim.param);
             for i=1:length(field)
                 value = optim.param.(field{i});
-                
-                if size(value, 2)==1
-                    fprintf('            param.%s = %s;\n', field{i}, SolverUtils.get_disp_vec(value))
-                else
-                    fprintf('            param.%s = %s;\n', field{i}, SolverUtils.get_disp_nan(value))
-                end
+                fprintf('            param.%s = %s;\n', field{i}, SolverUtils.get_disp_vec(value))
             end
             
             % display if the parameters are close to the bounds
@@ -226,7 +221,6 @@ classdef SolverLog < handle
             fct_err = data_optim.fct_err;
             fct_clamp = data_optim.fct_clamp;
             fct_param = data_optim.fct_param;
-            error_norm = data_optim.error_norm;
             n_var = data_optim.n_var;
             
             % transform unconstrained variables into bounded variables with sine transformation
@@ -246,11 +240,8 @@ classdef SolverLog < handle
                 err = NaN;
             else
                 % get the error metrics
-                [err_vec, wgt_vec] = fct_err(x_scale);
-                
-                % get the error norm
-                err = SolverUtils.get_norm(err_vec, wgt_vec, error_norm);
-                
+                [err, err_vec, wgt_vec] = fct_err(x_scale);
+                                
                 % get the weighted error vector
                 err_wgt_vec = repelem(err_vec, round(wgt_vec));
             end

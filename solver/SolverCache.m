@@ -17,9 +17,10 @@ classdef SolverCache < handle
         tol_cache % tolerance for determining unicity
         
         i_cache % number of element currently in the cache
-        x_val % input cached values
-        err_val % output cached values (error)
-        wgt_val % output cached values (weight)
+        x_mat_cache % input cached values
+        err_cache % output cached values (error norm)
+        err_mat_cache % output cached values (error)
+        wgt_mat_cache % output cached values (weight)
     end
     
     %% public
@@ -38,13 +39,13 @@ classdef SolverCache < handle
             self.get_clear();
         end
         
-        function [err, wgt] = get_eval(self, x)
+        function [err, err_mat, wgt_mat] = get_eval(self, x_mat)
             % Evaluate the error function.
                         
             if self.use_cache==true
-                [err, wgt] = self.get_eval_cache(x);
+                [err, err_mat, wgt_mat] = self.get_eval_cache(x_mat);
             else
-                [err, wgt] = self.get_eval_fct(x);
+                [err, err_mat, wgt_mat] = self.get_eval_fct(x_mat);
             end
         end
         
@@ -52,39 +53,40 @@ classdef SolverCache < handle
             % Clear and reset the cache.
             
             self.i_cache = 0;
-            self.x_val = [];
-            self.err_val = [];
-            self.wgt_val = [];
+            self.x_mat_cache = [];
+            self.err_cache = [];
+            self.err_mat_cache = [];
+            self.wgt_mat_cache = [];
         end
     end
     
     %% private api
     methods (Access = private)
-        function [err, wgt] = get_eval_fct(self, x)
+        function [err, err_mat, wgt_mat] = get_eval_fct(self, x_mat)
             % Call the error function (vectorized or not).
             
             if self.vec_cache
-                [err, wgt] = self.fct_err(x);
+                [err, err_mat, wgt_mat] = self.fct_err(x_mat);
             else
-                for i=1:size(x, 1)
-                    [err(i,:), wgt(i,:)] = self.fct_err(x(i,:));
+                for i=1:size(x_mat, 1)
+                    [err(i,:), err_mat(i,:), wgt_mat(i,:)] = self.fct_err(x_mat(i,:));
                 end
             end
         end
         
-        function [err, wgt] = get_eval_cache(self, x)
+        function [err, err_mat, wgt_mat] = get_eval_cache(self, x_mat)
             % Get the error function through the cache.
             
             % find the element in the cache (NaN if not found)
-            for i=1:size(x, 1)
-                idx_select(i) = self.get_find(x(i,:));
+            for i=1:size(x_mat, 1)
+                idx_select(i) = self.get_find(x_mat(i,:));
             end
             
             % get the function values
-            [err, wgt] = self.get_value(x, idx_select);
+            [err, err_mat, wgt_mat] = self.get_value(x_mat, idx_select);
             
             % update the cache
-            self.get_update(x, err, wgt, idx_select);
+            self.get_update(x_mat, err, err_mat, wgt_mat, idx_select);
         end
         
         function idx_select = get_find(self, x)
@@ -94,10 +96,10 @@ classdef SolverCache < handle
                 idx_select = NaN;
             else
                 % get the deviation between cache and called value
-                err = x-self.x_val;
+                err = x-self.x_mat_cache;
                 
                 % NaN is considered as unique
-                idx = isnan(x)&isnan(self.x_val);
+                idx = isnan(x)&isnan(self.x_mat_cache);
                 err(idx) = 0;
                 
                 % get the norm of the error
@@ -118,46 +120,52 @@ classdef SolverCache < handle
             end
         end
         
-        function [err, wgt] = get_value(self, x, idx_select)
+        function [err, err_mat, wgt_mat] = get_value(self, x_mat, idx_select)
             % Get the function values (from cache or evaluate).
             
             % call the function if not in the cache
             idx_compute = isnan(idx_select);
             if nnz(idx_compute)==0
                 err_compute = [];
-                wgt_compute = [];
+                err_mat_compute = [];
+                wgt_mat_compute = [];
             else
-                [err_compute, wgt_compute] = self.get_eval_fct(x(idx_compute,:));
+                [err_compute, err_mat_compute, wgt_mat_compute] = self.get_eval_fct(x_mat(idx_compute,:));
             end
             
             % get from cache
             idx_cache = isfinite(idx_select);
             idx_access = idx_select(idx_cache);
-            err_cache = self.err_val(idx_access,:);
-            wgt_cache = self.wgt_val(idx_access,:);
+            err_cache_tmp = self.err_cache(idx_access,:);
+            err_mat_cache_tmp = self.err_mat_cache(idx_access,:);
+            wgt_mat_cache_tmp = self.wgt_mat_cache(idx_access,:);
             
             % assemble the evaluated and cache values
             err(idx_compute,:) = err_compute;
-            wgt(idx_compute,:) = wgt_compute;
-            err(idx_cache,:) = err_cache;
-            wgt(idx_cache,:) = wgt_cache;
+            err_mat(idx_compute,:) = err_mat_compute;
+            wgt_mat(idx_compute,:) = wgt_mat_compute;
+            err(idx_cache,:) = err_cache_tmp;
+            err_mat(idx_cache,:) = err_mat_cache_tmp;
+            wgt_mat(idx_cache,:) = wgt_mat_cache_tmp;
         end
         
-        function get_update(self, x, err, wgt, idx_select)
+        function get_update(self, x_mat, err, err_mat, wgt_mat, idx_select)
             % Update the cache.
             
             % remove the used points from the cache
             idx_remove = isfinite(idx_select);
             idx_remove = idx_select(idx_remove);
-            self.x_val(idx_remove,:) = [];
-            self.err_val(idx_remove,:) = [];
-            self.wgt_val(idx_remove,:) = [];
+            self.x_mat_cache(idx_remove,:) = [];
+            self.err_cache(idx_remove,:) = [];
+            self.err_mat_cache(idx_remove,:) = [];
+            self.wgt_mat_cache(idx_remove,:) = [];
             self.i_cache = self.i_cache-length(idx_remove);
             
             % add the points at the top of the cache
-            self.x_val = [self.x_val ; x];
-            self.err_val = [self.err_val ; err];
-            self.wgt_val = [self.wgt_val ; wgt];
+            self.x_mat_cache = [self.x_mat_cache ; x_mat];
+            self.err_cache = [self.err_cache ; err];
+            self.err_mat_cache = [self.err_mat_cache ; err_mat];
+            self.wgt_mat_cache = [self.wgt_mat_cache ; wgt_mat];
             self.i_cache = self.i_cache+length(idx_select);
             
             % limit cache size
@@ -165,9 +173,10 @@ classdef SolverCache < handle
                 idx = 1:(self.i_cache-self.n_cache);
                 self.i_cache = self.n_cache;
                 
-                self.x_val(idx,:) = [];
-                self.err_val(idx,:) = [];
-                self.wgt_val(idx,:) = [];
+                self.x_mat_cache(idx,:) = [];
+                self.err_cache(idx,:) = [];
+                self.err_mat_cache(idx,:) = [];
+                self.wgt_mat_cache(idx,:) = [];
             end
         end
     end

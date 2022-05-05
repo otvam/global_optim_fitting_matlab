@@ -1,4 +1,4 @@
-function [var_opt, var_fix, fct_err] = get_param_problem()
+function [var_opt, var_fix, fct_err, format] = get_param_problem()
 
 var_fix = {};
 var_fix{end+1} = struct('name', 'cst_scalar', 'x', 0.5, 'idx', 1);
@@ -17,6 +17,12 @@ var_vector = [1.5 ; 2.5];
 [val, wgt] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, true);
 
 fct_err = @(param, n) get_fct_err(param, n, val, wgt);
+
+format.err = struct('format', '%.3f', 'scale', 1e2, 'unit', '%');
+format.param.cst_scalar = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
+format.param.cst_vector = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
+format.param.var_scalar = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
+format.param.var_vector = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 
 end
 

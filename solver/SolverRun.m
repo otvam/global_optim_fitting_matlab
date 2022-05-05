@@ -13,16 +13,18 @@ classdef SolverRun < handle
     properties (SetAccess = private, GetAccess = private)
         obj_var % object managing the variables
         obj_cache % object managing the cache for the error function
+        format % structure with formatting instructions (name and unit)
     end
     
     %% public
     methods (Access = public)
-        function self = SolverRun(obj_var, obj_cache)
+        function self = SolverRun(obj_var, obj_cache, format)
             % Constructor.
             
             % set data
             self.obj_var = obj_var;
             self.obj_cache = obj_cache;
+            self.format = format;
             
             % disable warning if parallel is not required
             warning('off', 'optimlib:commonMsgs:NoPCTLicense');
@@ -35,7 +37,6 @@ classdef SolverRun < handle
             solver_type = optimizer.solver_type;
             clamp_bnd = optimizer.clamp_bnd;
             recover_val = optimizer.recover_val;
-            error_norm = optimizer.error_norm;
             options = optimizer.options;
             
             % get the error function from the cache
@@ -48,13 +49,12 @@ classdef SolverRun < handle
             fct_param = @(x_scale) self.obj_var.get_param(x_scale);
             
             % get the error function
-            fct_sol = @(x_unclamp) SolverRun.get_sol(x_unclamp, fct_err, fct_clamp, error_norm, recover_val);
+            fct_sol = @(x_unclamp) SolverRun.get_sol(x_unclamp, fct_err, fct_clamp, recover_val);
             
             % data structure for the logging
             data_optim.fct_err = fct_err;
             data_optim.fct_clamp = fct_clamp;
             data_optim.fct_param = fct_param;
-            data_optim.error_norm = error_norm;
             data_optim.n_var = size(x0_scale, 2);
             
             % call the solver
@@ -89,18 +89,15 @@ classdef SolverRun < handle
             optim = obj_log.get_optim();
         end
         
-        function err = get_sol(x_unclamp, fct_err, fct_clamp, error_norm, recover_val)
+        function err = get_sol(x_unclamp, fct_err, fct_clamp, recover_val)
             % Error function that will be called by the different solvers.
             
             % transform unconstrained variables into bounded variables with sine transformation
             x_scale = fct_clamp(x_unclamp);
             
             % call the error function
-            [err_mat, wgt_mat] = fct_err(x_scale);
-                                                                        
-            % get the error norm (combination of error and weight matrices)
-            err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);
-                        
+            err = fct_err(x_scale);
+                                                                                                
             % replace bad values by the specified value
             idx = isfinite(err)==false;
             err(idx) = recover_val;

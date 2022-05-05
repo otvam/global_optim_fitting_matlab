@@ -65,7 +65,7 @@ classdef SolverVar < handle
                 param.(name)(idx,:) = x_tmp;
                 bnd.(name)(idx,:) = is_bound_tmp;
             end
-            
+                        
             % order (otherwise random)
             param = orderfields(param);
             bnd = orderfields(bnd);
