@@ -290,41 +290,47 @@ classdef SolverLog < handle
     
     %% private static api
     methods(Static, Access = private)
-        function optim = get_log(x_unclamp, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, data_optim)
+        function optim = get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, data_optim)
             % Parse and assign the logging data for an iteration.
             
             % extract
             fct_err = data_optim.fct_err;
-            fct_clamp = data_optim.fct_clamp;
-            fct_param = data_optim.fct_param;
+            fct_unscale = data_optim.fct_unscale;
             n_var = data_optim.n_var;
             
             % transform unconstrained variables into bounded variables with sine transformation
-            x_scale = fct_clamp(x_unclamp);
             pop_valid = isfinite(err);
-
+            
             % select the best point
             [err, idx_best] = min(err);
-            x_scale = x_scale(idx_best,:);
+            x_scale = x_scale(:,idx_best);
 
             % get the error metrics (handle empty/invalid points)
             if (isempty(x_scale)==true)||(isfinite(err)==false)
                 x_scale = NaN(1, n_var);
+            end
+            
+            % extract the parameter structure from a raw data (transformation and normalization)
+            [n_pts, param, bnd, is_bound] = fct_unscale(x_scale);
+            assert(n_pts==1, 'invalid size: solution')
+
+            % get the error metrics (handle empty/invalid points)
+            if all(isnan(x_scale))
                 err_wgt_vec = NaN;
                 err_vec = NaN;
                 wgt_vec = NaN;
                 err = NaN;
             else
                 % get the error metrics
-                [err, err_vec, wgt_vec] = fct_err(x_scale);
-                                
+                [err_vec, wgt_vec] = fct_err(param, n_pts);
+                
+                % get error metrics
+                err = SolverUtils.get_norm(err_vec, wgt_vec, 2);
+                
                 % get the weighted error vector
                 err_wgt_vec = repelem(err_vec, round(wgt_vec));
             end
                         
-            % extract the parameter structure from a raw data (transformation and normalization)
-            [n_pts, param, bnd, is_bound] = fct_param(x_scale);
-            assert(n_pts==1, 'invalid size: solution')
                                     
             % parse the solver message
             msg = splitlines(strtrim(msg));

@@ -15,16 +15,16 @@ classdef SolverUtils < handle
             % compute the norm
             if isfinite(norm)
                 err_wgt_mat = abs(err_mat).*(wgt_mat.^(1./norm));
-                n_elem = sum(wgt_mat, 2);
-                err = (sum(err_wgt_mat.^norm, 2)./n_elem).^(1./norm);
+                n_elem = sum(wgt_mat, 1);
+                err = (sum(err_wgt_mat.^norm, 1)./n_elem).^(1./norm);
             elseif isinf(norm)
-                err = max(abs(err_mat), [], 2);
+                err = max(abs(err_mat), [], 1);
             else
                 error('invalid norm')
             end
             
             % check for invalid data
-            idx = any(isfinite(err_mat)==false, 2);
+            idx = any(isfinite(err_mat)==false, 1);
             err(idx) = NaN;
         end
         
@@ -32,17 +32,17 @@ classdef SolverUtils < handle
             % Get the percentile on a error vector.
             
             % compute the specified percentile
-            err = quantile(abs(err_mat), percentile, 2);
+            err = quantile(abs(err_mat), percentile, 1);
             
             % check for invalid data
-            idx = any(isfinite(err_mat)==false, 2);
+            idx = any(isfinite(err_mat)==false, 1);
             err(idx) = NaN;
         end
     end
     
     %% scaling
     methods(Static, Access = public)
-        function [x_unclamp, lb_unclamp, ub_unclamp] = get_var_unclamp(x, clamp_bnd, lb, ub)
+        function [x_unclamp, lb_unclamp, ub_unclamp] = get_var_unclamp(x, lb, ub, clamp_bnd)
             % Transform bounded a variable into a unconstrained variable with sine transformation.
             
             if clamp_bnd==true
@@ -82,7 +82,7 @@ classdef SolverUtils < handle
             end
         end
         
-        function x = get_var_clamp(x_unclamp, clamp_bnd, lb, ub)
+        function x = get_var_clamp(x_unclamp, lb, ub, clamp_bnd)
             % Transform a unconstrained variable into a bounded variable with sine transformation.
             
             if clamp_bnd==true
@@ -105,39 +105,11 @@ classdef SolverUtils < handle
             end
         end
         
-        function x_scale = get_var_scale(x, lb, ub, scale, norm)
+        function x_trf = get_var_trf(x, trf, is_revert)
             % Scale a variable (transformation and normalization).
             
             % get the variable transformation
-            switch scale
-                case 'lin'
-                    fct_scale = @(x) x;
-                case 'sqrt'
-                    fct_scale = @(x) sqrt(x);
-                case 'quad'
-                    fct_scale = @(x) x.^2;
-                case 'log'
-                    fct_scale = @(x) log10(x);
-                otherwise
-                    error('invalid data')
-            end
-            
-            % transform the variable and the bounds
-            x_scale = fct_scale(x);
-            lb_scale = fct_scale(lb);
-            ub_scale = fct_scale(ub);
-            
-            % normalize if required
-            if norm==true
-                x_scale = (x_scale-lb_scale)./(ub_scale-lb_scale);
-            end
-        end
-
-        function x_trf = get_var_trf(x, scale, is_revert)
-            % Scale a variable (transformation and normalization).
-            
-            % get the variable transformation
-            switch scale
+            switch trf
                 case 'lin'
                     fct_scale = @(x) x;
                     fct_unscale = @(x) x;
@@ -162,7 +134,7 @@ classdef SolverUtils < handle
             end
         end
         
-        function x_norm = get_var_norm(x, lb, ub, is_revert)
+        function x_norm = get_var_norm(x, lb, ub, norm, is_revert)
             % Scale a variable (transformation and normalization).
             
             if norm==true
@@ -172,38 +144,6 @@ classdef SolverUtils < handle
                     x_norm = (x-lb)./(ub-lb);
                 end
             end
-        end
-                
-        function x = get_var_unscale(x_scale, lb, ub, scale, norm)
-            % Unscale a variable (transformation and normalization).
-            
-            % get the variable transformation
-            switch scale
-                case 'lin'
-                    fct_scale = @(x) x;
-                    fct_unscale = @(x) x;
-                case 'sqrt'
-                    fct_scale = @(x) sqrt(x);
-                    fct_unscale = @(x) x.^2;
-                case 'quad'
-                    fct_scale = @(x) x.^2;
-                    fct_unscale = @(x) sqrt(x);
-                case 'log'
-                    fct_scale = @(x) log10(x);
-                    fct_unscale = @(x) 10.^x;
-                otherwise
-                    error('invalid data')
-            end
-
-            % denormalize if required
-            if norm==true
-                lb_scale = fct_scale(lb);
-                ub_scale = fct_scale(ub);
-                x_scale = lb_scale+x_scale.*(ub_scale-lb_scale);
-            end
-                        
-            % revert the variable transformation
-            x = fct_unscale(x_scale);
         end
     end
 end

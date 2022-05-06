@@ -56,26 +56,23 @@ error_norm = solver.error_norm;
 
 % object managing the variables (name, bounds, transformation, normalization, etc.)
 fprintf('get var\n')
-obj_var = SolverVar(var_opt, var_fix, tol_bound);
+obj_var = SolverVar(var_opt, var_fix);
 
 % object managing the cache for the error function
-fprintf('get cache\n')
-fct_err_cache = @(x_scale) get_err_cache(x_scale, obj_var, fct_err, error_norm);
-obj_cache = SolverCache(fct_err_cache, use_cache, vec_cache, n_cache, tol_cache);
+% fprintf('get cache\n')
+% fct_err_cache = @(x_scale) get_err_cache(x_scale, obj_var, fct_err, error_norm);
+% obj_cache = SolverCache(fct_err_cache, use_cache, vec_cache, n_cache, tol_cache);
 
 % object interfacing the different solvers
 fprintf('get interface\n')
-obj_run = SolverRun(obj_var, obj_cache, format);
+obj_run = SolverRun(obj_var, fct_err, format);
 
 % calling the different solvers (using the results as initial values)
 disp('run solvers')
-x_scale = obj_var.get_x0_scale();
+[n_pts, param] = obj_var.get_init();
 for i=1:length(optimizer)
-    [x_scale, optim{i}] = obj_run.get_run(x_scale, optimizer{i});
+    [n_pts, param, optim{i}] = obj_run.get_run(n_pts, param, optimizer{i});
 end
-
-% extract the parameter structure from a raw matrix (transformation and normalization)
-[n_pts, param] = obj_var.get_param(x_scale);
 
 % solution should be a single parameter combination
 assert(n_pts==1, 'invalid solution')
