@@ -18,6 +18,7 @@ classdef SolverVar < handle
         x0_scale % initial values (scaled)
         lb_scale % lower bounds (scaled)
         ub_scale % upper bounds (scaled)
+        tol_scale % tolerance on the bounds (scaled)
     end
     
     %% public
@@ -32,7 +33,7 @@ classdef SolverVar < handle
             
             % get the scaled data
             for i=1:length(self.var_opt)
-                [self.x0_scale(:,i), self.lb_scale(i), self.ub_scale(i)] = SolverVar.get_init(self.var_opt{i});
+                [self.x0_scale(:,i), self.lb_scale(i), self.ub_scale(i), self.tol_scale(i)] = SolverVar.get_init(self.var_opt{i});
             end
         end
         
@@ -97,18 +98,22 @@ classdef SolverVar < handle
     
     %% private static api
     methods(Static, Access = private)
-        function [x0_scale, lb_scale, ub_scale] = get_init(var)
+        function [x0_scale, lb_scale, ub_scale, tol_scale] = get_init(var)
             % Scale a variable (bounds, transformation, and normalization).
             
             % extract
             x0 = var.x0;
             lb = var.lb;
             ub = var.ub;
-            scale = var.scale;
+            tol_bnd = var.tol_bnd;
+            trf = var.trf;
             norm = var.norm;
             
             % scale the variable
-            [x0_scale, lb_scale, ub_scale] =  SolverUtils.get_var_scale(x0, lb, ub, scale, norm);
+            x0_scale =  SolverUtils.get_var_scale(x0, lb, ub, trf, norm);
+            lb_scale =  SolverUtils.get_var_scale(lb, lb, ub, trf, norm);
+            ub_scale =  SolverUtils.get_var_scale(ub, lb, ub, trf, norm);            
+            tol_scale = tol_bnd.*(ub_scale-lb_scale);
         end
         
         function [name, idx, x, is_bound] = get_param_opt(x_scale, var, lb_scale, ub_scale, tol_bound)
@@ -119,17 +124,17 @@ classdef SolverVar < handle
             name = var.name;
             lb = var.lb;
             ub = var.ub;
-            scale = var.scale;
+            trf = var.trf;
             norm = var.norm;
-            
+                        
             % check if any parameters are close to the bounds 
             tol = tol_bound.*(ub_scale-lb_scale);
             lb_scale_tol = lb_scale+tol;
             ub_scale_tol = ub_scale-tol;
             is_bound = (x_scale>lb_scale_tol)&(x_scale<ub_scale_tol);
-
+            
             % unscale the variable
-            x = SolverUtils.get_var_unscale(x_scale, lb, ub, scale, norm);
+            x = SolverUtils.get_var_unscale(x_scale, lb, ub, trf, norm);
         end
         
         function [name, idx, x, is_bound] = get_param_fix(var, n_rep)

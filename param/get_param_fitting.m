@@ -1,23 +1,27 @@
-function [var_opt, var_fix, fct_err, format] = get_param_problem()
+function [var_opt, var_fix, fct_err, format] = get_param_fitting()
 
+%% get data
+cst_scalar = 0.5;
+cst_vector = [1.0 ; 1.5];
+var_scalar = 0.5;
+var_vector = [1.5 ; 2.5];
+[val, wgt, n_fit] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, true);
+
+%% variables
 var_fix = {};
 var_fix{end+1} = struct('name', 'cst_scalar', 'x', 0.5, 'idx', 1);
 var_fix{end+1} = struct('name', 'cst_vector', 'x', 1.0, 'idx', 1);
 var_fix{end+1} = struct('name', 'cst_vector', 'x', 1.5, 'idx', 2);
 
 var_opt = {};
-var_opt{end+1} = struct('name', 'var_scalar', 'x0', 0.5, 'lb', 0.1, 'ub', 1.0, 'scale', 'log', 'norm', true, 'idx', 1);
-var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'scale', 'lin', 'norm', true, 'idx', 1);
-var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'scale', 'lin', 'norm', true, 'idx', 2);
+var_opt{end+1} = struct('name', 'var_scalar', 'x0', 0.5, 'lb', 0.1, 'ub', 1.0, 'tol_bnd', 0.05, 'trf', 'log', 'norm', true, 'idx', 1);
+var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'tol_bnd', 0.05, 'trf', 'lin', 'norm', true, 'idx', 1);
+var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'tol_bnd', 0.05, 'trf', 'lin', 'norm', true, 'idx', 2);
 
-cst_scalar = 0.5;
-cst_vector = [1.0 ; 1.5];
-var_scalar = 0.5;
-var_vector = [1.5 ; 2.5];
-[val, wgt] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, true);
+%% error function
+fct_err = @(param, n) get_fct_err(param, n, n_fit, val, wgt);
 
-fct_err = @(param, n) get_fct_err(param, n, val, wgt);
-
+%% format
 format.err = struct('spec', '%.3f', 'scale', 1e2, 'unit', '%');
 format.param.cst_scalar = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 format.param.cst_vector = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
@@ -26,7 +30,7 @@ format.param.var_vector = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 
 end
 
-function [err_mat, wgt_mat] = get_fct_err(param, n, val, wgt)
+function [err_mat, wgt_mat, n_fit] = get_fct_err(param, n_pts, n_fit, val, wgt)
 
 cst_scalar = param.cst_scalar;
 cst_vector = param.cst_vector;
@@ -35,18 +39,19 @@ var_vector = param.var_vector;
 
 val_model_mat = get_model(cst_scalar, cst_vector, var_scalar, var_vector, false);
 
-val_mat = repmat(val, 1, n);
-wgt_mat = repmat(wgt, 1, n);
+val_mat = repmat(val, 1, n_pts);
+wgt_mat = repmat(wgt, 1, n_pts);
 err_mat = (val_model_mat-val_mat)./val_mat;
 
 end
 
-function [val, wgt] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, add_noise)
+function [val, wgt, n_fit] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, add_noise)
 
 % get the points composing the dataset
 x_vec = linspace(1, 5, 10);
 y_vec = linspace(1, 5, 10);
 [x_mat, y_mat] = ndgrid(x_vec, y_vec);
+n_fit = length(x_vec).*length(y_vec);
 
 % get the weigts, double the weight for the edges
 wgt_mat = ones(length(x_vec), length(y_vec));

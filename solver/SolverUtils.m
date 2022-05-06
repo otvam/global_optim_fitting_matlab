@@ -104,8 +104,8 @@ classdef SolverUtils < handle
                 x = x_unclamp;
             end
         end
-
-        function [x0_scale, lb_scale, ub_scale] = get_var_scale(x0, lb, ub, scale, norm)
+        
+        function x_scale = get_var_scale(x, lb, ub, scale, norm)
             % Scale a variable (transformation and normalization).
             
             % get the variable transformation
@@ -123,20 +123,57 @@ classdef SolverUtils < handle
             end
             
             % transform the variable and the bounds
-            x0_scale = fct_scale(x0);
+            x_scale = fct_scale(x);
             lb_scale = fct_scale(lb);
             ub_scale = fct_scale(ub);
             
             % normalize if required
             if norm==true
-                fct = @(x) (x-lb_scale)./(ub_scale-lb_scale);
-                
-                x0_scale = fct(x0_scale);
-                lb_scale = fct(lb_scale);
-                ub_scale = fct(ub_scale);
+                x_scale = (x_scale-lb_scale)./(ub_scale-lb_scale);
+            end
+        end
+
+        function x_trf = get_var_trf(x, scale, is_revert)
+            % Scale a variable (transformation and normalization).
+            
+            % get the variable transformation
+            switch scale
+                case 'lin'
+                    fct_scale = @(x) x;
+                    fct_unscale = @(x) x;
+                case 'sqrt'
+                    fct_scale = @(x) sqrt(x);
+                    fct_unscale = @(x) x.^2;
+                case 'quad'
+                    fct_scale = @(x) x.^2;
+                    fct_unscale = @(x) sqrt(x);
+                case 'log'
+                    fct_scale = @(x) log10(x);
+                    fct_unscale = @(x) 10.^x;
+                otherwise
+                    error('invalid data')
+            end
+            
+            % transform the variable
+            if is_revert==true
+                x_trf = fct_unscale(x);
+            else
+                x_trf = fct_scale(x);
             end
         end
         
+        function x_norm = get_var_norm(x, lb, ub, is_revert)
+            % Scale a variable (transformation and normalization).
+            
+            if norm==true
+                if is_revert==true
+                    x_norm = lb+x.*(ub-lb);
+                else
+                    x_norm = (x-lb)./(ub-lb);
+                end
+            end
+        end
+                
         function x = get_var_unscale(x_scale, lb, ub, scale, norm)
             % Unscale a variable (transformation and normalization).
             
@@ -164,7 +201,7 @@ classdef SolverUtils < handle
                 ub_scale = fct_scale(ub);
                 x_scale = lb_scale+x_scale.*(ub_scale-lb_scale);
             end
-            
+                        
             % revert the variable transformation
             x = fct_unscale(x_scale);
         end

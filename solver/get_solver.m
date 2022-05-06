@@ -89,13 +89,17 @@ function [err, err_mat, wgt_mat] = get_err_cache(x_scale, obj_var, fct_err, erro
 [n_pts, param] = obj_var.get_param(x_scale);
 
 % call the provided error function
-[err_mat, wgt_mat] = fct_err(param, n_pts);
+[err_mat, wgt_mat, n_fit] = fct_err(param, n_pts);
+
+% check size
+assert(size(err_mat, 1)==n_fit, 'invalid size: err_mat')
+assert(size(wgt_mat, 1)==n_fit, 'invalid size: wgt_mat')
+assert(size(err_mat, 2)==n_pts, 'invalid size: err_mat')
+assert(size(wgt_mat, 2)==n_pts, 'invalid size: wgt_mat')
 
 % reshape and check size
 err_mat = err_mat.';
 wgt_mat = wgt_mat.';
-assert(size(err_mat, 1)==n_pts, 'invalid size: err_mat')
-assert(size(wgt_mat, 1)==n_pts, 'invalid size: wgt_mat')
 
 % get the error norm
 err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);
