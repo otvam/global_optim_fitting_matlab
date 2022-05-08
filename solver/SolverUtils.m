@@ -9,34 +9,78 @@ classdef SolverUtils < handle
 
     %% error
     methods(Static, Access = public)
-        function err = get_norm(err_mat, wgt_mat, norm)
+        function out = get_norm(err_mat, wgt_mat, norm)
             % Get the norm on a error vector with specified weights.
             
+            % check
+            idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
+
             % compute the norm
             if isfinite(norm)
                 err_wgt_mat = abs(err_mat).*(wgt_mat.^(1./norm));
                 n_elem = sum(wgt_mat, 1);
-                err = (sum(err_wgt_mat.^norm, 1)./n_elem).^(1./norm);
+                out = (sum(err_wgt_mat.^norm, 1)./n_elem).^(1./norm);
             elseif isinf(norm)
-                err = max(abs(err_mat), [], 1);
+                out = max(abs(err_mat), [], 1);
             else
                 error('invalid norm')
             end
             
-            % check for invalid data
-            idx = any(isfinite(err_mat)==false, 1);
-            err(idx) = NaN;
+            % replace invalid data
+            out(idx_nan) = NaN;
         end
-        
-        function err = get_percentile(err_mat, percentile)
+
+        function out = get_avg(err_mat, wgt_mat)
+            % Get the average on a error vector with specified weights.
+            
+            % check
+            idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
+            
+            % compute the average
+            out = sum(err_mat.*wgt_mat, 1)./sum(wgt_mat, 1);
+            
+            % replace invalid data
+            out(idx_nan) = NaN;
+        end
+
+        function out = get_percentile(err_mat, wgt_mat, percentile)
             % Get the percentile on a error vector.
             
-            % compute the specified percentile
-            err = quantile(abs(err_mat), percentile, 1);
+            % check
+            idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
             
-            % check for invalid data
-            idx = any(isfinite(err_mat)==false, 1);
-            err(idx) = NaN;
+            % compute the weighted percentile
+            for i=1:size(err_mat, 2)
+                err_vec = err_mat(:,i);
+                wgt_vec = wgt_mat(:,i);
+                                
+                [err_vec, idx, idx_rev] = unique(err_vec);
+                wgt_vec = accumarray(idx_rev, wgt_vec, [], @sum);
+                tmp_vec = 1:length(idx);
+                
+                out_vec = (cumsum(wgt_vec)-0.5.*wgt_vec)./sum(wgt_vec);
+                
+                if percentile<=min(out_vec)
+                    err = min(err_vec);
+                elseif percentile>=max(out_vec)
+                    err = max(err_vec);
+                else
+                    idx = interp1(out_vec, tmp_vec, percentile);
+                    err = interp1(tmp_vec, err_vec, idx);
+                end
+                
+                out(i) = err;
+            end
+            
+            % replace invalid data
+            out(idx_nan) = NaN;
+        end
+        
+        function idx_nan = get_err_data(err_mat, wgt_mat)
+            % Check the validity of error metrics.
+            
+            assert(all(size(err_mat)==size(wgt_mat)), 'invalid data')
+            idx_nan = any(isfinite(err_mat)==false, 1)|any(isfinite(wgt_mat)==false, 1);
         end
     end
     
