@@ -3,7 +3,7 @@ classdef SolverCache < handle
     %
     %    Caching with a specified tolerance for determining unicity.
     %    With or without vectorized call to the error function.
-    %    Maxmimum number of elements in the cache.
+    %    Limit the maxmimum number of elements in the cache.
     %
     %    Thomas Guillod.
     %    2021-2022 - BSD License.

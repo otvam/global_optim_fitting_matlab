@@ -6,15 +6,15 @@ classdef SolverUtils < handle
     %
     %    Thomas Guillod.
     %    2021-2022 - BSD License.
-
+    
     %% error
     methods(Static, Access = public)
         function out = get_norm(err_mat, wgt_mat, norm)
-            % Get the norm on a error vector with specified weights.
+            % Get the norm on an error matrix with specified weights.
             
             % check
             idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
-
+            
             % compute the norm
             if isfinite(norm)
                 err_wgt_mat = abs(err_mat).*(wgt_mat.^(1./norm));
@@ -31,7 +31,7 @@ classdef SolverUtils < handle
         end
         
         function out = get_error(err_mat, wgt_mat, type)
-            % Get the minimum of a vector.
+            % Get simple weighted error metrics for an error matrix.
             
             % check
             idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
@@ -53,22 +53,26 @@ classdef SolverUtils < handle
         end
         
         function out = get_percentile(err_mat, wgt_mat, percentile)
-            % Get the percentile on a error vector.
+            % Get simple the weighted percentile for an error matrix.
             
             % check
             idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
             
             % compute the weighted percentile
             for i=1:size(err_mat, 2)
+                % extract
                 err_vec = err_mat(:,i);
                 wgt_vec = wgt_mat(:,i);
-                                
+                
+                % remove duplicated values
                 [err_vec, idx, idx_rev] = unique(err_vec);
                 wgt_vec = accumarray(idx_rev, wgt_vec, [], @sum);
                 tmp_vec = 1:length(idx);
                 
+                % get the cumulative weights between zero and one
                 out_vec = (cumsum(wgt_vec)-0.5.*wgt_vec)./sum(wgt_vec);
                 
+                % compute the weighted percentile
                 if percentile<=min(out_vec)
                     err = min(err_vec);
                 elseif percentile>=max(out_vec)
@@ -78,6 +82,7 @@ classdef SolverUtils < handle
                     err = interp1(tmp_vec, err_vec, idx);
                 end
                 
+                % assign
                 out(i) = err;
             end
             
@@ -86,7 +91,7 @@ classdef SolverUtils < handle
         end
         
         function idx_nan = get_err_data(err_mat, wgt_mat)
-            % Check the validity of error metrics.
+            % Check the validity of an error matrix with specified weights.
             
             assert(all(size(err_mat)==size(wgt_mat)), 'invalid data')
             idx_nan = any(isfinite(err_mat)==false, 1)|any(isfinite(wgt_mat)==false, 1);
@@ -116,7 +121,7 @@ classdef SolverUtils < handle
                     % sine transformation for double-sided bounds
                     x_unclamp = 2.*(x-lb)./(ub-lb)-1;
                     x_unclamp = asin(x_unclamp);
-
+                    
                     % shift to avoid numerical issue around zero
                     x_unclamp = 2.*pi+x_unclamp;
                 end
@@ -159,9 +164,9 @@ classdef SolverUtils < handle
         end
         
         function x_trf = get_var_trf(x, trf, is_revert)
-            % Scale a variable (transformation and normalization).
+            % Variable transformation (or reverse transformation).
             
-            % get the variable transformation
+            % get the scaling functions
             switch trf
                 case 'lin'
                     fct_scale = @(x) x;
@@ -188,7 +193,7 @@ classdef SolverUtils < handle
         end
         
         function x_norm = get_var_norm(x, lb, ub, norm, is_revert)
-            % Scale a variable (transformation and normalization).
+            % Variable normalization (or denormalization).
             
             if norm==true
                 if is_revert==true

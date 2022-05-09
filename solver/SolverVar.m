@@ -5,6 +5,7 @@ classdef SolverVar < handle
     %    Variable transformation (linear, quadratic, logarithmic).
     %    Variable normalization (between zero and one).
     %    Transform bounded variables to uncontrained variable with sine transformation.
+    %    Compute the desired error metric from the output of the error function.
     %
     %    Thomas Guillod.
     %    2021-2022 - BSD License.
@@ -13,14 +14,14 @@ classdef SolverVar < handle
     properties (SetAccess = private, GetAccess = private)
         var_opt % description of the parameters to be fitted
         var_fix % description of the parameters with fixed values
-        var_err
+        var_err % description of the used error metric
     end
     
     %% public
     methods (Access = public)
         function self = SolverVar(var_opt, var_fix, var_err)
             % Constructor.
-
+            
             % set data
             self.var_opt = var_opt;
             self.var_fix = var_fix;
@@ -28,7 +29,7 @@ classdef SolverVar < handle
         end
         
         function [n_pts, param] = get_init(self)
-            % Get the initial values.
+            % Get the variable initial values.
             
             % handle the fitting variables
             for i=1:length(self.var_opt)
@@ -54,35 +55,12 @@ classdef SolverVar < handle
             end
         end
         
-        function [err_best, n_set] = get_scale_err(self, err_mat, wgt_mat)
-            
-            % extract
-            type = self.var_err.type;
-            arg = self.var_err.arg;
-            
-            % check
-            assert(all(size(err_mat)==size(wgt_mat)), 'invalid data')
-            n_set = (size(err_mat, 1)+size(wgt_mat, 1))./2;
-            
-            % get error metrics
-            switch type
-                case 'error'
-                    err_best = SolverUtils.get_error(err_mat, wgt_mat, arg);
-                case 'norm'
-                    err_best = SolverUtils.get_norm(err_mat, wgt_mat, arg);
-                case 'percentile'
-                    err_best = SolverUtils.get_percentile(err_mat, wgt_mat, arg);
-                otherwise
-                    error('invalid data')
-            end
-        end
-        
         function [x_scale, lb_scale, ub_scale] = get_scale(self, n_pts, param, clamp_bnd)
             % Extract the raw matrix from the parameter structure.
             %    - scale the values (transformation, normalization, and clamping)
             %    - handle the bounds
             %    - assign the results in matrices
-
+            
             % handle the fitting variables
             for i=1:length(self.var_opt)
                 % extract
@@ -98,7 +76,7 @@ classdef SolverVar < handle
                 ub_trf = SolverUtils.get_var_trf(ub, trf, false);
                 lb_norm = SolverUtils.get_var_norm(lb_trf, lb_trf, ub_trf, norm, false);
                 ub_norm = SolverUtils.get_var_norm(ub_trf, lb_trf, ub_trf, norm, false);
-
+                
                 % get vector
                 x_tmp = param.(name)(idx,:);
                 assert(length(x_tmp)==n_pts, 'invalid data')
@@ -113,7 +91,7 @@ classdef SolverVar < handle
                 lb_scale(i,:) = lb_unclamp_tmp;
                 ub_scale(i,:) = ub_unclamp_tmp;
             end
-                                    
+            
             % check the data
             assert(size(x_scale, 2)==n_pts, 'invalid data')
             assert(size(lb_scale, 2)==1, 'invalid data')
@@ -125,7 +103,7 @@ classdef SolverVar < handle
             %    - unscale the values (transformation, normalization, and clamping)
             %    - check if the values are closed to the bounds
             %    - assign the results in structure
-
+            
             % get number of points
             n_pts = size(x_scale, 2);
             
@@ -141,16 +119,16 @@ classdef SolverVar < handle
                 norm = self.var_opt{i}.norm;
                 tol_bnd = self.var_opt{i}.tol_bnd;
                 
-                                % get the bounds
+                % get the bounds
                 lb_trf = SolverUtils.get_var_trf(lb, trf, false);
                 ub_trf = SolverUtils.get_var_trf(ub, trf, false);
                 lb_norm = SolverUtils.get_var_norm(lb_trf, lb_trf, ub_trf, norm, false);
                 ub_norm = SolverUtils.get_var_norm(ub_trf, lb_trf, ub_trf, norm, false);
                 
-                                % get vector
+                % get vector
                 x_scale_tmp = x_scale(i,:);
                 assert(length(x_scale_tmp)==n_pts, 'invalid data')
-
+                
                 % variable scaling
                 x_norm_tmp = SolverUtils.get_var_clamp(x_scale_tmp, lb_norm, ub_norm, clamp_bnd);
                 x_trf_tmp = SolverUtils.get_var_norm(x_norm_tmp, lb_trf, ub_trf, norm, true);
@@ -161,13 +139,13 @@ classdef SolverVar < handle
                 lb_norm_tol = lb_norm+tol;
                 ub_norm_tol = ub_norm-tol;
                 is_bound_tmp = is_bound&(x_norm_tmp>lb_norm_tol)&(x_norm_tmp<ub_norm_tol);
-                is_bound = is_bound&is_bound_tmp;           
+                is_bound = is_bound&is_bound_tmp;
                 
                 % assign
                 param.(name)(idx,:) = x_tmp;
                 bnd.(name)(idx,:) = is_bound_tmp;
             end
-                        
+            
             % handle the fixed variables
             for i=1:length(self.var_fix)
                 x0 = self.var_fix{i}.x0;
@@ -176,6 +154,32 @@ classdef SolverVar < handle
                 
                 param.(name)(idx,:) = repmat(x0, n_pts, 1);
                 bnd.(name)(idx,:) = true(n_pts, 1);
+            end
+        end
+        
+        function [err_best, n_set] = get_scale_err(self, err_mat, wgt_mat)
+            % Compute the error metric from the output of the error function.
+            %    - from the error matrix and the associated weights
+            %    - using the specific method
+
+            % extract
+            type = self.var_err.type;
+            arg = self.var_err.arg;
+            
+            % check
+            assert(all(size(err_mat)==size(wgt_mat)), 'invalid data')
+            n_set = (size(err_mat, 1)+size(wgt_mat, 1))./2;
+            
+            % get the specified error metric
+            switch type
+                case 'error'
+                    err_best = SolverUtils.get_error(err_mat, wgt_mat, arg);
+                case 'norm'
+                    err_best = SolverUtils.get_norm(err_mat, wgt_mat, arg);
+                case 'percentile'
+                    err_best = SolverUtils.get_percentile(err_mat, wgt_mat, arg);
+                otherwise
+                    error('invalid data')
             end
         end
     end

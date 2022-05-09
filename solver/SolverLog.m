@@ -12,8 +12,8 @@ classdef SolverLog < handle
         solver_type % name of the used solver
         log_iter % log (or not) the solver iterations
         log_final % log (or not) the solver final results
-        fct_sol % data required for the logging (error function and variable scaling)
-        fct_unscale % data required for the logging (error function and variable scaling)
+        fct_unscale % function the extract the parameter structure from a raw matrix
+        fct_sol % function returning the error metrics
         format % structure with formatting instructions (name and unit)
         
         t_start % timestamp set at the initialization
@@ -105,7 +105,7 @@ classdef SolverLog < handle
             err = format.err;
             param = format.param;
             
-            % displat the solver figures of merit
+            % display the solver figures of merit
             fprintf('        fom\n')
             fprintf('            msg\n')
             for i=1:length(optim.sol_fom.msg)
@@ -178,9 +178,7 @@ classdef SolverLog < handle
         function get_plot_single(name, optim, format)
             % Plot the logged data for a specific iteration.
             
-            % check if the solution exists
             if optim.has_solution==true
-                
                 % extract format
                 scale = format.err.scale;
                 unit = format.err.unit;
@@ -190,11 +188,11 @@ classdef SolverLog < handle
                 wgt_vec = optim.err_fom.wgt_vec;
                 n_set = optim.err_fom.n_set;
                 
-                
+                % plot the error distribution (if it exists)
                 if n_set>1
-                    % plot the error distribution
                     figure('name', [name ' / single'])
                     
+                    % histogram
                     subplot(1,2,1)
                     histogram(scale.*err_vec, 'Normalization', 'pdf')
                     grid('on')
@@ -202,6 +200,7 @@ classdef SolverLog < handle
                     ylabel('p (#)', 'interpreter', 'none')
                     title(sprintf('Histogram / %s', name), 'interpreter', 'none')
                     
+                    % scatter plot with error and weights
                     subplot(1,2,2)
                     [err_vec, idx] = sort(err_vec);
                     wgt_vec = wgt_vec(idx);
@@ -264,6 +263,7 @@ classdef SolverLog < handle
     %% private api
     methods( Access = private)
         function [t_solver, t_iter] = get_time(self, n_iter, is_final)
+            % Compute and update the solver timing (total time and iteration time).
             
             % get current time
             t_now = datetime('now');
@@ -283,24 +283,25 @@ classdef SolverLog < handle
         end
         
         function optim = get_log(self, x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter)
-            % Parse and assign the logging data for an iteration.
+            % Parse and assign the logging data for a specific iteration.
             
-            % check
+            % check if there is a valid solution
             has_solution = (isempty(x_scale)==false)&&(isempty(err)==false)&&any(isfinite(err));
             
-            % check solution
+            % parse the best solution (if any)
             if has_solution==true
+                % best the best parameter combination
                 [~, idx_best] = min(err);
                 x_scale = x_scale(:,idx_best);
                 
-                % extract the parameter structure from a raw data (transformation and normalization)
+                % extract the parameter structure from a raw data
                 [n_pts, param, bnd, is_bound] = self.fct_unscale(x_scale);
                 assert(n_pts==1, 'invalid size: solution')
                 
                 % get the error metrics
                 [err_best, n_set, err_vec, wgt_vec] = self.fct_sol(x_scale);
                 
-                % get error metrics
+                % process the error metrics
                 err_fom = SolverLog.get_err_fom(err_best, n_set, err_vec, wgt_vec);
             else
                 param = [];
@@ -311,7 +312,7 @@ classdef SolverLog < handle
                 is_bound = false;
             end
             
-            % get fom
+            % get the solver figures of merit
             sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
             
             % assign base data
@@ -373,7 +374,8 @@ classdef SolverLog < handle
         end
         
         function sol_fom = get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter)
-            
+            % Process the solver data and assign the results to a struct.
+
             % check population
             pop_valid = isfinite(err);
             n_pop_all = length(pop_valid);
@@ -396,7 +398,7 @@ classdef SolverLog < handle
         end
         
         function err_fom = get_err_fom(err_best, n_set, err_vec, wgt_vec)
-            % Parse the error metrics.
+            % Process the error metrics and assign the results to a struct.
             
             % get the error for different types of norms
             err_fom.n_set = n_set;

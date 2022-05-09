@@ -2,9 +2,9 @@ classdef SolverRun < handle
     % Class calling the different solvers.
     %
     %    Abstraction layers for the different solvers.
-    %    Manage the cache object.
     %    Manage the variable object.
-    %    Create and manage the log object.
+    %    Manage the cache object.
+    %    Manage the log object.
     %
     %    Thomas Guillod.
     %    2021-2022 - BSD License.
@@ -14,7 +14,7 @@ classdef SolverRun < handle
         obj_var % object managing the variables
         fct_err % error function for determining the parameters
         format % structure with formatting instructions (name and unit)
-        cache
+        cache % structure with the cache options
     end
     
     %% public
@@ -43,17 +43,19 @@ classdef SolverRun < handle
             % get variables scaling
             [x_scale, lb_scale, ub_scale] = self.obj_var.get_scale(n_pts, param, clamp_bnd);
             fct_unscale = @(x_scale) self.obj_var.get_unscale(x_scale, clamp_bnd);
+            
+            % get the error metric
             fct_scale_err = @(err_mat, wgt_mat) self.obj_var.get_scale_err(err_mat, wgt_mat);
             
-            % cache the function
+            % cache the provided error function
             fct_cache = @(x_scale) SolverRun.get_cache(x_scale, fct_unscale, self.fct_err);
             obj_cache = SolverCache(fct_cache, self.cache);
             fct_cache = @(x_scale) obj_cache.get_eval(x_scale);
             
-            % get the error function
+            % get the objective function for the solver
             fct_sol = @(x_scale) SolverRun.get_sol(x_scale, fct_cache, fct_scale_err);
             fct_recover = @(x_scale) SolverRun.get_sol_recover(x_scale, fct_sol, recover_val);
-                                    
+            
             % create the logging object
             obj_log = SolverLog(solver_type, log_iter, log_final, fct_unscale, fct_sol, self.format);
             
@@ -76,30 +78,34 @@ classdef SolverRun < handle
             % logging function to be called after the final solver iteration
             fct_final = @(x_scale, err, n_iter, n_eval, msg, is_valid) obj_log.get_final(x_scale.', err.', n_iter, n_eval, msg, is_valid);
             
-            % run the solver
+            % reshape (to the solver format)
             x_scale = x_scale.';
             lb_scale = lb_scale.';
             ub_scale = ub_scale.';
+            
+            % call the solver
             x_scale = SolverList.get_solver(fct_recover, fct_iter, fct_final, x_scale, lb_scale, ub_scale, options, solver_type);
+            
+            % reshape (back to original format)
             x_scale = x_scale.';
             
             % get the logging data
             optim = obj_log.get_optim();
         end
-                
+        
         function [err_mat, wgt_mat] = get_cache(x_scale, fct_unscale, fct_err)
-                        
+            % Unscaling the varaibles and calling the error function (cached function).
+            
             % unscale variables
             [n_pts, param] = fct_unscale(x_scale);
-
+            
             % call the error function
             [err_mat, wgt_mat] = fct_err(param, n_pts);
         end
         
         function [err_best, n_set, err_mat, wgt_mat] = get_sol(x_scale, fct_cache, fct_scale_err)
-            % Error function that will be called by the different solvers.
+            % Function computing the error metric for given parameters.
             
-            % evaluate the function
             if isempty(x_scale)
                 err_best = [];
                 n_set = [];
@@ -112,8 +118,9 @@ classdef SolverRun < handle
         end
         
         function err_best = get_sol_recover(x_scale, fct_sol, recover_val)
+            % Replace invalid values by the provided values (objective function).
             
-            % reshape
+            % reshape (to the solver format)
             x_scale = x_scale.';
             
             % get error
@@ -123,7 +130,7 @@ classdef SolverRun < handle
             idx = isfinite(err_best)==false;
             err_best(idx) = recover_val;
             
-            % reshape
+            % reshape (back to original format)
             err_best = err_best.';
         end
     end

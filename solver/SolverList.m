@@ -54,19 +54,19 @@ classdef SolverList < handle
             % extract
             n_batch = options.n_batch;
             n_tot = options.n_tot;
-            n_eval_max = options.n_eval_max;
-            val_lim = options.val_lim;
+            n_iter_max = options.n_iter_max;
+            err_lim = options.err_lim;
             
             % run solver
             n_iter = 0;
             n_eval = 0;
             x = [];
             err = [];
-            while (n_eval<=n_eval_max)&&(size(x, 1)<n_tot)
+            while (n_iter<n_iter_max)&&(size(x, 1)<n_tot)
                 n_iter = n_iter+1;
                 n_eval = n_eval+n_batch;
                 
-                [x, err] = SolverList.get_iter_init(x, err, n_iter, n_eval, fct_sol, fct_iter, n_var, lb, ub, n_batch, val_lim);
+                [x, err] = SolverList.get_iter_init(x, err, n_iter, n_eval, fct_sol, fct_iter, n_var, lb, ub, n_batch, err_lim);
             end
             
             % check if the required number of solution is found
@@ -279,7 +279,7 @@ classdef SolverList < handle
             optchanged = false;
         end
         
-        function [x, err] = get_iter_init(x, err, n_iter, n_eval, fct_sol, fct_iter, n_var, lb, ub, n_batch, val_lim)
+        function [x, err] = get_iter_init(x, err, n_iter, n_eval, fct_sol, fct_iter, n_var, lb, ub, n_batch, err_lim)
             % Make an iteration for the init solver.
             
             % select random points between the bounds
@@ -289,7 +289,7 @@ classdef SolverList < handle
             err_tmp = fct_sol(x_tmp);
             
             % select only points that are valid a below the threshold
-            idx = isfinite(err_tmp)&(err_tmp<val_lim);
+            idx = isfinite(err_tmp)&(err_tmp<err_lim);
             x = [x ; x_tmp(idx,:)];
             err = [err ; err_tmp(idx,:)];
             

@@ -38,7 +38,7 @@ function [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format,
 %        fct_err (handle): error function for determining the parameters
 %        format (struct): structure with formatting instructions (name and unit)
 %        cache (struct): structure with the cache options
-%        optimizer (cell): structure describing the solver parameters
+%        optimizer (cell): cell describing the different solvers to be used
 %
 %    Returns:
 %        param (struct): fitted parameters
