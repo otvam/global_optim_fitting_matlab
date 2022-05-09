@@ -15,8 +15,8 @@ addpath('param')
 [cache, optimizer] = get_param_solver();
 
 % solve the fitting problem
-[var_opt, var_fix, var_err, fct_err, format] = get_param_fitting();
-[param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format, cache, optimizer);
+% [var_opt, var_fix, var_err, fct_err, format] = get_param_fitting();
+% [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format, cache, optimizer);
 
 % solve the optimization problem
 [var_opt, var_fix, var_err, fct_err, format] = get_param_optim();
