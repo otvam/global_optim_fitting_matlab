@@ -45,18 +45,16 @@ function [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format,
 %    Thomas Guillod.
 %    2021-2022 - BSD License.
 
+% disable warning if parallel is not required
+warning('off', 'optimlib:commonMsgs:NoPCTLicense');
+
 % object managing the variables (name, bounds, transformation, normalization, etc.)
 fprintf('get var\n')
 obj_var = SolverVar(var_opt, var_fix, var_err);
 
-% object managing the cache for the error function
-% fprintf('get cache\n')
-% fct_err_cache = @(x_scale) get_err_cache(x_scale, obj_var, fct_err, error_norm);
-% obj_cache = SolverCache(fct_err_cache, use_cache, vec_cache, n_cache, tol_cache);
-
 % object interfacing the different solvers
 fprintf('get interface\n')
-obj_run = SolverRun(obj_var, fct_err, format);
+obj_run = SolverRun(obj_var, fct_err, format, cache);
 
 % calling the different solvers (using the results as initial values)
 disp('run solvers')

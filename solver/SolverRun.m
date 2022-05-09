@@ -14,20 +14,19 @@ classdef SolverRun < handle
         obj_var % object managing the variables
         fct_err % error function for determining the parameters
         format % structure with formatting instructions (name and unit)
+        cache
     end
     
     %% public
     methods (Access = public)
-        function self = SolverRun(obj_var, fct_err, format)
+        function self = SolverRun(obj_var, fct_err, format, cache)
             % Constructor.
             
             % set data
             self.obj_var = obj_var;
             self.fct_err = fct_err;
             self.format = format;
-            
-            % disable warning if parallel is not required
-            warning('off', 'optimlib:commonMsgs:NoPCTLicense');
+            self.cache = cache;
         end
         
         function [n_pts, param, optim] = get_run(self, n_pts, param, optimizer)
@@ -41,17 +40,18 @@ classdef SolverRun < handle
             recover_val = optimizer.recover_val;
             options = optimizer.options;
             
-            % get the error function from the cache
-            %             self.obj_cache.get_clear();
-            %             fct_err = @(x_scale) self.obj_cache.get_eval(x_scale);
-            
             % get variables scaling
             [n_var, x_scale, lb_scale, ub_scale] = self.obj_var.get_scale(n_pts, param, clamp_bnd);
             fct_unscale = @(x_scale) self.obj_var.get_unscale(x_scale, clamp_bnd);
             fct_scale_err = @(err_mat, wgt_mat) self.obj_var.get_scale_err(err_mat, wgt_mat);
             
+            % cache the function
+            fct_cache = @(x_scale) SolverRun.get_cache(x_scale, fct_unscale, self.fct_err);
+            obj_cache = SolverCache(fct_cache, self.cache);
+            fct_cache = @(x_scale) obj_cache.get_eval(x_scale);
+            
             % get the error function
-            fct_sol = @(x_scale) SolverRun.get_sol(x_scale, self.fct_err, fct_unscale, fct_scale_err);
+            fct_sol = @(x_scale) SolverRun.get_sol(x_scale, fct_cache, fct_scale_err);
             fct_recover = @(x_scale) SolverRun.get_sol_recover(x_scale, fct_sol, recover_val);
                         
             % data structure for the logging
@@ -92,17 +92,16 @@ classdef SolverRun < handle
             optim = obj_log.get_optim();
         end
                 
-        function [err_mat, wgt_mat] = get_cache(x_scale, fct_err, fct_unscale)
+        function [err_mat, wgt_mat] = get_cache(x_scale, fct_unscale, fct_err)
                         
             % unscale variables
             [n_pts, param] = fct_unscale(x_scale);
 
             % call the error function
             [err_mat, wgt_mat] = fct_err(param, n_pts);
-            
         end
         
-        function [err_best, n_set, err_mat, wgt_mat] = get_sol(x_scale, fct_err, fct_unscale, fct_scale_err)
+        function [err_best, n_set, err_mat, wgt_mat] = get_sol(x_scale, fct_cache, fct_scale_err)
             % Error function that will be called by the different solvers.
             
             % evaluate the function
@@ -112,7 +111,7 @@ classdef SolverRun < handle
                 err_mat = [];
                 wgt_mat = [];
             else
-                [err_mat, wgt_mat] = SolverRun.get_cache(x_scale, fct_err, fct_unscale);
+                [err_mat, wgt_mat] = fct_cache(x_scale);
                 [err_best, n_set] = fct_scale_err(err_mat, wgt_mat);
             end
         end
