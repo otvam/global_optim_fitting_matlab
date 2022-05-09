@@ -42,7 +42,7 @@ classdef SolverLog < handle
             % Log and display the solver progress after an iteration.
             
             % get if logging is required
-            if (self.log_iter==false)||isempty(x_scale)||isempty(err)
+            if self.log_iter==false
                 return
             end
 
@@ -69,7 +69,7 @@ classdef SolverLog < handle
             % Log, display, and plot the solver results after the final iteration.
             
             % get if logging is required
-            if (self.log_final==false)||isempty(x_scale)||isempty(err)
+            if self.log_final==false
                 return
             end
             
@@ -108,15 +108,13 @@ classdef SolverLog < handle
             fprintf('    %s\n', name)
             err = format.err;
             param = format.param;
-                        
-            % displaty the solver message
-            fprintf('        msg\n')
-            for i=1:length(optim.msg)
-                fprintf('            %s\n', optim.msg{i})
-            end
-            
+                                    
             % displat the solver figures of merit
             fprintf('        fom\n')
+            fprintf('            msg\n')
+            for i=1:length(optim.sol_fom.msg)
+                fprintf('            %s\n', optim.sol_fom.msg{i})
+            end
             fprintf('            status\n')
             fprintf('                is_valid = %s\n',  mat2str(optim.sol_fom.is_valid))
             fprintf('                is_bound = %s\n',  mat2str(optim.sol_fom.is_bound))
@@ -129,15 +127,18 @@ classdef SolverLog < handle
             fprintf('            error\n')
             fprintf('                n_pop_all = %d\n', optim.sol_fom.n_pop_all)
             fprintf('                n_pop_fail = %d\n', optim.sol_fom.n_pop_fail)
-            fprintf('                err = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err, err))
-
+            fprintf('                err_best = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
+            
+                        if optim.has_solution==true
             % display the error metrics
-            if (length(optim.err_vec)>1)||(length(optim.wgt_vec)>1)
-                fprintf('        err_fom\n')
-                fprintf('            size\n')
-                fprintf('                n_all = %d\n', optim.err_fom.n_all)
-                fprintf('                wgt_sum = %.3f\n', optim.err_fom.wgt_sum)
-                fprintf('                wgt_avg = %.3f\n', optim.err_fom.wgt_avg)
+            fprintf('        err_fom\n')
+            fprintf('            size\n')
+            fprintf('                n_set = %d\n', optim.err_fom.n_set)
+            fprintf('                err_best = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
+            fprintf('            weight\n')
+            fprintf('                wgt_sum = %.3f\n', optim.err_fom.wgt_sum)
+            fprintf('                wgt_avg = %.3f\n', optim.err_fom.wgt_avg)
+            if optim.err_fom.n_set>1
                 fprintf('            avg\n')
                 fprintf('                avg = %s\n', SolverLog.get_format_scalar(optim.err_fom.avg, err))
                 fprintf('                min = %s\n', SolverLog.get_format_scalar(optim.err_fom.min, err))
@@ -175,8 +176,9 @@ classdef SolverLog < handle
                 value = optim.bnd.(field{i});
                 fprintf('            bnd.%s = %s\n', field{i}, SolverLog.get_format_bnd(value))
             end
+                        end
         end
-                
+        
         function txt = get_format_scalar(val, format)
             % Parse a scalar to a string with scaling and units.
             
@@ -227,24 +229,41 @@ classdef SolverLog < handle
         function get_plot_single(name, optim, format)
             % Plot the logged data for a specific iteration.
             
-            % extract format
-            scale = format.err.scale;
-            unit = format.err.unit;
-            
-            % extract the error vector and the weighted error vector
-            err_wgt_vec = optim.err_wgt_vec;
-            err_vec = optim.err_vec;
-            
-            % plot the error distribution
-            figure('name', [name ' / single'])
-            histogram(scale.*err_wgt_vec, 'Normalization', 'pdf')
-            hold('on')
-            histogram(scale.*err_vec, 'Normalization', 'pdf')
-            grid('on')
-            xlabel(['err (' unit ')'], 'interpreter', 'none')
-            ylabel('p (#)', 'interpreter', 'none')
-            legend('weighted', 'raw')
-            title(sprintf('Histogram / %s / n = %d / %d', name, length(err_wgt_vec), length(err_vec)), 'interpreter', 'none')
+            % check if the solution exists
+            if optim.has_solution==true
+                
+                % extract format
+                scale = format.err.scale;
+                unit = format.err.unit;
+                
+                % extract the error vector and the weighted error vector
+                err_vec = optim.err_fom.err_vec;
+                wgt_vec = optim.err_fom.wgt_vec;
+                n_set = optim.err_fom.n_set;
+                
+                
+                if n_set>1
+                    % plot the error distribution
+                    figure('name', [name ' / single'])
+                    
+                    subplot(1,2,1)
+                    histogram(scale.*err_vec, 'Normalization', 'pdf')
+                    grid('on')
+                    xlabel(['err (' unit ')'], 'interpreter', 'none')
+                    ylabel('p (#)', 'interpreter', 'none')
+                    title(sprintf('Histogram / %s', name), 'interpreter', 'none')
+                    
+                    subplot(1,2,2)
+                    [err_vec, idx] = sort(err_vec);
+                    wgt_vec = wgt_vec(idx);
+                    scatter(1:n_set, scale.*err_vec, 50, wgt_vec, 'filled')
+                    colorbar();
+                    grid('on')
+                    xlabel('idx (#)', 'interpreter', 'none')
+                    ylabel(['err (' unit ')'], 'interpreter', 'none')
+                    title(sprintf('Weight / %s', name), 'interpreter', 'none')
+                end
+            end
         end
         
         function get_plot_all(name, optim, format)
@@ -257,11 +276,11 @@ classdef SolverLog < handle
             % extract the data for all iterations (error metric and timing)
             conv_vec = 1:length(optim);
             for i=1:length(optim)
-                err = optim{i}.sol_fom.err;
+                err_best = optim{i}.sol_fom.err_best;
                 t_solver = optim{i}.sol_fom.t_solver;
                 
-                if isfinite(err)
-                    err_conv_ok_vec(i) = err;
+                if isfinite(err_best)
+                    err_conv_ok_vec(i) = err_best;
                     err_conv_ko_vec(i) = NaN;
                 else
                     err_conv_ok_vec(i) = NaN;
@@ -275,9 +294,9 @@ classdef SolverLog < handle
             
             % plot the error metric
             subplot(1,2,1)
-            plot(conv_vec, scale.*err_conv_ok_vec, 'xg')
+            plot(conv_vec, scale.*err_conv_ok_vec, 'og')
             hold('on')
-            plot(conv_vec, scale.*err_conv_ko_vec, 'xr')
+            plot(conv_vec, scale.*err_conv_ko_vec, 'or')
             grid('on')
             xlabel('iter (#)', 'interpreter', 'none')
             ylabel(['err (' unit ')'], 'interpreter', 'none')
@@ -285,7 +304,7 @@ classdef SolverLog < handle
             
             % plot the solver timing data
             subplot(1,2,2)
-            plot(conv_vec, seconds(t_solver_conv_vec), 'xb')
+            plot(conv_vec, seconds(t_solver_conv_vec), 'ob')
             grid('on')
             xlabel('iter (#)', 'interpreter', 'none')
             ylabel('t (s)', 'interpreter', 'none')
@@ -301,69 +320,57 @@ classdef SolverLog < handle
             % extract
             fct_sol = data_optim.fct_sol;
             fct_unscale = data_optim.fct_unscale;
-            n_var = data_optim.n_var;
-            
-            % transform unconstrained variables into bounded variables with sine transformation
-            pop_valid = isfinite(err);
-            
-            % select the best point
-            [err, idx_best] = min(err);
-            x_scale = x_scale(:,idx_best);
+                 
+            % check
+            has_solution = (isempty(x_scale)==false)&&(isempty(err)==false)&&any(isfinite(err));
 
-            % get the error metrics (handle empty/invalid points)
-            if (isempty(x_scale)==true)||(isfinite(err)==false)
-                x_scale = NaN(1, n_var);
-            end
-            
-            % extract the parameter structure from a raw data (transformation and normalization)
-            [n_pts, param, bnd, is_bound] = fct_unscale(x_scale);
-            assert(n_pts==1, 'invalid size: solution')
-
-            % get the error metrics (handle empty/invalid points)
-            if all(isnan(x_scale))
-                err_vec = NaN;
-                wgt_vec = NaN;
-                err = NaN;
-            else
+            % check solution
+            if has_solution==true            
+                [~, idx_best] = min(err);
+                x_scale = x_scale(:,idx_best);
+                                
+                % extract the parameter structure from a raw data (transformation and normalization)
+                [n_pts, param, bnd, is_bound] = fct_unscale(x_scale);
+                assert(n_pts==1, 'invalid size: solution')
+                
                 % get the error metrics
-                [err, err_vec, wgt_vec] = fct_sol(x_scale);
+                [err_best, n_set, err_vec, wgt_vec] = fct_sol(x_scale);
                 
                 % get error metrics
-                err = SolverUtils.get_norm(err_vec, wgt_vec, 2);
+                err_fom = SolverLog.get_err_fom(err_best, n_set, err_vec, wgt_vec);
+            else
+                param = [];
+                bnd = [];
+                err_fom = [];
+                err = NaN;
+                is_valid = false;
+                is_bound = false;
             end
-                        
+            
+            % get fom
+            sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
                                     
+            % assign base data
+            optim.has_solution = has_solution;
+            optim.sol_fom = sol_fom;
+            optim.param = param;
+            optim.bnd = bnd;
+            optim.err_fom = err_fom;
+        end
+        
+        function sol_fom = get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter)
+            
+            % check population
+            pop_valid = isfinite(err);
+            n_pop_all = length(pop_valid);
+            n_pop_fail = nnz(pop_valid==false);
+            
             % parse the solver message
             msg = splitlines(strtrim(msg));
             
             % get the solver figures of merit
-            sol_fom = SolverLog.get_sol_fom(is_valid, is_bound, err, n_iter, n_eval, pop_valid, t_solver, t_iter);
-            
-            % parse the error metrics
-            err_fom = SolverLog.get_err_fom(err_vec, wgt_vec);
-            
-            % assign
-            optim.param = param;
-            optim.bnd = bnd;
-            optim.err_vec = err_vec;
-            optim.wgt_vec = wgt_vec;
-            optim.err_fom = err_fom;
-            optim.sol_fom = sol_fom;
-            optim.msg = msg;
-        end
-        
-        function sol_fom = get_sol_fom(is_valid, is_bound, err, n_iter, n_eval, pop_valid, t_solver, t_iter)
-            % Get the solver figure of merit.
-            
-            % check if the point is valid
-            is_valid = is_valid&&isfinite(err);
-
-            % get the size of the solution (number of parameter combinations)
-            n_pop_all = length(pop_valid);
-            n_pop_fail = nnz(pop_valid==false);
-            
-            % assign
-            sol_fom.err = err;
+            sol_fom.msg = msg;
+            sol_fom.err_best = err_best;
             sol_fom.is_bound = is_bound;
             sol_fom.is_valid = is_valid;
             sol_fom.n_iter = n_iter;
@@ -374,33 +381,40 @@ classdef SolverLog < handle
             sol_fom.t_iter = t_iter;
         end
         
-        function err_fom = get_err_fom(err_vec, wgt_vec)
+        function err_fom = get_err_fom(err_best, n_set, err_vec, wgt_vec)
             % Parse the error metrics.
             
             % get the error for different types of norms
-            err_fom.n_all = length(err_vec);
+            err_fom.n_set = n_set;
             err_fom.wgt_sum = sum(wgt_vec);
             err_fom.wgt_avg = sum(wgt_vec)./length(wgt_vec);
             
-            err_fom.avg = SolverUtils.get_error(err_vec, wgt_vec, 'avg');
-            err_fom.min = SolverUtils.get_error(err_vec, wgt_vec, 'min');
-            err_fom.max = SolverUtils.get_error(err_vec, wgt_vec, 'max');
+            if err_fom.n_set>1
+                err_fom.avg = SolverUtils.get_error(err_vec, wgt_vec, 'avg');
+                err_fom.min = SolverUtils.get_error(err_vec, wgt_vec, 'min');
+                err_fom.max = SolverUtils.get_error(err_vec, wgt_vec, 'max');
+                
+                err_fom.norm_n_1 = SolverUtils.get_norm(err_vec, wgt_vec, 1);
+                err_fom.norm_n_2 = SolverUtils.get_norm(err_vec, wgt_vec, 2);
+                err_fom.norm_n_4 = SolverUtils.get_norm(err_vec, wgt_vec, 4);
+                err_fom.norm_n_6 = SolverUtils.get_norm(err_vec, wgt_vec, 6);
+                err_fom.norm_n_8 = SolverUtils.get_norm(err_vec, wgt_vec, 8);
+                err_fom.norm_n_10 = SolverUtils.get_norm(err_vec, wgt_vec, 10);
+                err_fom.norm_n_12 = SolverUtils.get_norm(err_vec, wgt_vec, 12);
+                err_fom.norm_inf = SolverUtils.get_norm(err_vec, wgt_vec, Inf);
+                
+                % get error for different percentiles
+                err_fom.percentile_50 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.50);
+                err_fom.percentile_75 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.75);
+                err_fom.percentile_90 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.90);
+                err_fom.percentile_95 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.95);
+                err_fom.percentile_99 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.99);
+            end
             
-            err_fom.norm_n_1 = SolverUtils.get_norm(err_vec, wgt_vec, 1);
-            err_fom.norm_n_2 = SolverUtils.get_norm(err_vec, wgt_vec, 2);
-            err_fom.norm_n_4 = SolverUtils.get_norm(err_vec, wgt_vec, 4);
-            err_fom.norm_n_6 = SolverUtils.get_norm(err_vec, wgt_vec, 6);
-            err_fom.norm_n_8 = SolverUtils.get_norm(err_vec, wgt_vec, 8);
-            err_fom.norm_n_10 = SolverUtils.get_norm(err_vec, wgt_vec, 10);
-            err_fom.norm_n_12 = SolverUtils.get_norm(err_vec, wgt_vec, 12);
-            err_fom.norm_inf = SolverUtils.get_norm(err_vec, wgt_vec, Inf);
-            
-            % get error for different percentiles
-            err_fom.percentile_50 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.50);
-            err_fom.percentile_75 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.75);
-            err_fom.percentile_90 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.90);
-            err_fom.percentile_95 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.95);
-            err_fom.percentile_99 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.99);
+            % assign raw data
+            err_fom.err_best = err_best;
+            err_fom.err_vec = err_vec;
+            err_fom.wgt_vec = wgt_vec;
         end
     end
 end
