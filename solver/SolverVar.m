@@ -34,11 +34,10 @@ classdef SolverVar < handle
             % handle the fitting variables
             for i=1:length(self.var_opt)
                 x0 = self.var_opt{i}.x0;
-                idx = self.var_opt{i}.idx;
                 name = self.var_opt{i}.name;
                 
-                n_pts(i) = length(x0);
-                param.(name)(idx,:) = x0;
+                n_pts(i) = size(x0, 2);
+                param.(name) = x0;
             end
             
             % get number of points
@@ -48,10 +47,10 @@ classdef SolverVar < handle
             % handle the fixed variables
             for i=1:length(self.var_fix)
                 x0 = self.var_fix{i}.x0;
-                idx = self.var_fix{i}.idx;
                 name = self.var_fix{i}.name;
                 
-                param.(name)(idx,:) = repmat(x0, n_pts, 1);
+                assert(size(x0, 2)==1, 'invalid data')
+                param.(name) = repmat(x0, 1, n_pts);
             end
         end
         
@@ -61,38 +60,49 @@ classdef SolverVar < handle
             %    - handle the bounds
             %    - assign the results in matrices
             
+            % initialize the matrices
+            x_scale = [];
+            lb_scale = [];
+            ub_scale = [];
+
             % handle the fitting variables
             for i=1:length(self.var_opt)
                 % extract
-                idx = self.var_opt{i}.idx;
                 name = self.var_opt{i}.name;
+                                x0 = self.var_opt{i}.x0;
                 lb = self.var_opt{i}.lb;
                 ub = self.var_opt{i}.ub;
                 trf = self.var_opt{i}.trf;
                 norm = self.var_opt{i}.norm;
                 
+                % get variable size
+                n_size = size(x0, 1);
+
                 % get the bounds
                 lb_trf = SolverUtils.get_var_trf(lb, trf, false);
                 ub_trf = SolverUtils.get_var_trf(ub, trf, false);
                 lb_norm = SolverUtils.get_var_norm(lb_trf, lb_trf, ub_trf, norm, false);
                 ub_norm = SolverUtils.get_var_norm(ub_trf, lb_trf, ub_trf, norm, false);
-                
+                                
                 % get vector
-                x_tmp = param.(name)(idx,:);
-                assert(length(x_tmp)==n_pts, 'invalid data')
+                x_tmp = param.(name);
+                assert(size(x_tmp, 2)==n_pts, 'invalid data')
+                assert(size(x_tmp, 1)==n_size, 'invalid data')
                 
                 % variable scaling
                 x_trf_tmp = SolverUtils.get_var_trf(x_tmp, trf, false);
                 x_norm_tmp = SolverUtils.get_var_norm(x_trf_tmp, lb_trf, ub_trf, norm, false);
                 [x_umclamp_tmp, lb_unclamp_tmp, ub_unclamp_tmp] = SolverUtils.get_var_unclamp(x_norm_tmp, lb_norm, ub_norm, clamp_bnd);
-                
+                                
                 % assign
-                x_scale(i,:) = x_umclamp_tmp;
-                lb_scale(i,:) = lb_unclamp_tmp;
-                ub_scale(i,:) = ub_unclamp_tmp;
+                x_scale = [x_scale ; x_umclamp_tmp];
+                lb_scale = [lb_scale ; repmat(lb_unclamp_tmp, n_size, 1)];
+                ub_scale = [ub_scale ; repmat(ub_unclamp_tmp, n_size, 1)];
             end
-            
+                        
             % check the data
+            assert(size(x_scale, 1)==size(lb_scale, 1), 'invalid data')
+            assert(size(x_scale, 1)==size(ub_scale, 1), 'invalid data')
             assert(size(x_scale, 2)==n_pts, 'invalid data')
             assert(size(lb_scale, 2)==1, 'invalid data')
             assert(size(ub_scale, 2)==1, 'invalid data')
@@ -108,26 +118,35 @@ classdef SolverVar < handle
             n_pts = size(x_scale, 2);
             
             % handle the fitting variables
+            idx = 0;
             is_bound = true;
             for i=1:length(self.var_opt)
                 % extract
-                idx = self.var_opt{i}.idx;
                 name = self.var_opt{i}.name;
+                                x0 = self.var_opt{i}.x0;
                 lb = self.var_opt{i}.lb;
                 ub = self.var_opt{i}.ub;
                 trf = self.var_opt{i}.trf;
                 norm = self.var_opt{i}.norm;
                 tol_bnd = self.var_opt{i}.tol_bnd;
                 
+                % get variable size
+                n_size = size(x0, 1);
+                
                 % get the bounds
                 lb_trf = SolverUtils.get_var_trf(lb, trf, false);
                 ub_trf = SolverUtils.get_var_trf(ub, trf, false);
                 lb_norm = SolverUtils.get_var_norm(lb_trf, lb_trf, ub_trf, norm, false);
                 ub_norm = SolverUtils.get_var_norm(ub_trf, lb_trf, ub_trf, norm, false);
-                
+                                
                 % get vector
-                x_scale_tmp = x_scale(i,:);
-                assert(length(x_scale_tmp)==n_pts, 'invalid data')
+                idx_vec = (idx+1):(idx+n_size);
+                x_scale_tmp = x_scale(idx_vec,:);
+                assert(size(x_scale_tmp, 1)==n_size, 'invalid data')
+                assert(size(x_scale_tmp, 2)==n_pts, 'invalid data')
+                
+                % update the index
+                idx = idx+n_size;
                 
                 % variable scaling
                 x_norm_tmp = SolverUtils.get_var_clamp(x_scale_tmp, lb_norm, ub_norm, clamp_bnd);
@@ -139,21 +158,25 @@ classdef SolverVar < handle
                 lb_norm_tol = lb_norm+tol;
                 ub_norm_tol = ub_norm-tol;
                 is_bound_tmp = is_bound&(x_norm_tmp>lb_norm_tol)&(x_norm_tmp<ub_norm_tol);
-                is_bound = is_bound&is_bound_tmp;
-                
+                is_bound = is_bound&all(is_bound_tmp, 1);
+                                
                 % assign
-                param.(name)(idx,:) = x_tmp;
-                bnd.(name)(idx,:) = is_bound_tmp;
+                param.(name) = x_tmp;
+                bnd.(name) = is_bound_tmp;
             end
+            assert(size(x_scale, 1)==idx, 'invalid data')
             
             % handle the fixed variables
             for i=1:length(self.var_fix)
                 x0 = self.var_fix{i}.x0;
-                idx = self.var_fix{i}.idx;
                 name = self.var_fix{i}.name;
                 
-                param.(name)(idx,:) = repmat(x0, n_pts, 1);
-                bnd.(name)(idx,:) = true(n_pts, 1);
+                assert(size(x0, 2)==1, 'invalid data')
+                x0_tmp = repmat(x0, 1, n_pts);
+                is_bound_tmp = true(size(x0_tmp));
+
+                param.(name) = x0_tmp;
+                bnd.(name) = is_bound_tmp;
             end
         end
         
