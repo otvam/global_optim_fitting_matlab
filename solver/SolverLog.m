@@ -12,7 +12,8 @@ classdef SolverLog < handle
         solver_type % name of the used solver
         log_iter % log (or not) the solver iterations
         log_final % log (or not) the solver final results
-        data_optim % data required for the logging (error function and variable scaling)
+        fct_sol % data required for the logging (error function and variable scaling)
+        fct_unscale % data required for the logging (error function and variable scaling)
         format % structure with formatting instructions (name and unit)
         
         t_start % timestamp set at the initialization
@@ -22,14 +23,15 @@ classdef SolverLog < handle
     
     %% public
     methods (Access = public)
-        function self = SolverLog(solver_type, log_iter, log_final, data_optim, format)
+        function self = SolverLog(solver_type, log_iter, log_final, fct_unscale, fct_sol, format)
             % Constructor.
             
             % set data
             self.solver_type = solver_type;
             self.log_iter = log_iter;
             self.log_final = log_final;
-            self.data_optim = data_optim;
+            self.fct_unscale = fct_unscale;
+                        self.fct_sol = fct_sol;
             self.format = format;
             
             % init the timing and logging data
@@ -57,7 +59,7 @@ classdef SolverLog < handle
             msg = sprintf('intermediate results\nstate: %s', msg);
             
             % get and add the logging data
-            optim_tmp = SolverLog.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
+            optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
             self.optim{end+1} = optim_tmp;
             
             % display the data
@@ -82,7 +84,7 @@ classdef SolverLog < handle
             msg = sprintf('final results\n%s', msg);
             
             % get and add the logging data
-            optim_tmp = SolverLog.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
+            optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
             self.optim{end+1} = optim_tmp;
             
             % display and plot the data
@@ -96,6 +98,46 @@ classdef SolverLog < handle
             % Get the logged data.
             
             optim = self.optim;
+        end
+        
+        function optim = get_log(self, x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter)
+            % Parse and assign the logging data for an iteration.
+                        
+            % check
+            has_solution = (isempty(x_scale)==false)&&(isempty(err)==false)&&any(isfinite(err));
+            
+            % check solution
+            if has_solution==true
+                [~, idx_best] = min(err);
+                x_scale = x_scale(:,idx_best);
+                
+                % extract the parameter structure from a raw data (transformation and normalization)
+                [n_pts, param, bnd, is_bound] = self.fct_unscale(x_scale);
+                assert(n_pts==1, 'invalid size: solution')
+                
+                % get the error metrics
+                [err_best, n_set, err_vec, wgt_vec] = self.fct_sol(x_scale);
+                
+                % get error metrics
+                err_fom = SolverLog.get_err_fom(err_best, n_set, err_vec, wgt_vec);
+            else
+                param = [];
+                bnd = [];
+                err_fom = [];
+                err = NaN;
+                is_valid = false;
+                is_bound = false;
+            end
+            
+            % get fom
+            sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
+            
+            % assign base data
+            optim.has_solution = has_solution;
+            optim.sol_fom = sol_fom;
+            optim.param = param;
+            optim.bnd = bnd;
+            optim.err_fom = err_fom;
         end
     end
     
@@ -314,50 +356,6 @@ classdef SolverLog < handle
     
     %% private static api
     methods(Static, Access = private)
-        function optim = get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, data_optim)
-            % Parse and assign the logging data for an iteration.
-            
-            % extract
-            fct_sol = data_optim.fct_sol;
-            fct_unscale = data_optim.fct_unscale;
-            
-            % check
-            has_solution = (isempty(x_scale)==false)&&(isempty(err)==false)&&any(isfinite(err));
-            
-            % check solution
-            if has_solution==true
-                [~, idx_best] = min(err);
-                x_scale = x_scale(:,idx_best);
-                
-                % extract the parameter structure from a raw data (transformation and normalization)
-                [n_pts, param, bnd, is_bound] = fct_unscale(x_scale);
-                assert(n_pts==1, 'invalid size: solution')
-                
-                % get the error metrics
-                [err_best, n_set, err_vec, wgt_vec] = fct_sol(x_scale);
-                
-                % get error metrics
-                err_fom = SolverLog.get_err_fom(err_best, n_set, err_vec, wgt_vec);
-            else
-                param = [];
-                bnd = [];
-                err_fom = [];
-                err = NaN;
-                is_valid = false;
-                is_bound = false;
-            end
-            
-            % get fom
-            sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
-            
-            % assign base data
-            optim.has_solution = has_solution;
-            optim.sol_fom = sol_fom;
-            optim.param = param;
-            optim.bnd = bnd;
-            optim.err_fom = err_fom;
-        end
-        
         function sol_fom = get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter)
             
             % check population

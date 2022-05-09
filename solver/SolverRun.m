@@ -41,7 +41,7 @@ classdef SolverRun < handle
             options = optimizer.options;
             
             % get variables scaling
-            [n_var, x_scale, lb_scale, ub_scale] = self.obj_var.get_scale(n_pts, param, clamp_bnd);
+            [x_scale, lb_scale, ub_scale] = self.obj_var.get_scale(n_pts, param, clamp_bnd);
             fct_unscale = @(x_scale) self.obj_var.get_unscale(x_scale, clamp_bnd);
             fct_scale_err = @(err_mat, wgt_mat) self.obj_var.get_scale_err(err_mat, wgt_mat);
             
@@ -53,14 +53,9 @@ classdef SolverRun < handle
             % get the error function
             fct_sol = @(x_scale) SolverRun.get_sol(x_scale, fct_cache, fct_scale_err);
             fct_recover = @(x_scale) SolverRun.get_sol_recover(x_scale, fct_sol, recover_val);
-                        
-            % data structure for the logging
-            data_optim.fct_sol = fct_sol;
-            data_optim.fct_unscale = fct_unscale;
-            data_optim.n_var = n_var;
-            
+                                    
             % create the logging object
-            obj_log = SolverLog(solver_type, log_iter, log_final, data_optim, self.format);
+            obj_log = SolverLog(solver_type, log_iter, log_final, fct_unscale, fct_sol, self.format);
             
             % call the solver
             [x_scale, optim] = SolverRun.get_solver(fct_recover, x_scale, lb_scale, ub_scale, options, solver_type, obj_log);

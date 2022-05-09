@@ -77,7 +77,7 @@ classdef SolverVar < handle
             end
         end
         
-        function [n_var, x_scale, lb_scale, ub_scale] = get_scale(self, n_pts, param, clamp_bnd)
+        function [x_scale, lb_scale, ub_scale] = get_scale(self, n_pts, param, clamp_bnd)
             % Extract the raw matrix from the parameter structure.
             %    - scale the values (transformation, normalization, and clamping)
             %    - handle the bounds
@@ -115,7 +115,6 @@ classdef SolverVar < handle
             end
                                     
             % check the data
-            n_var = length(self.var_opt);
             assert(size(x_scale, 2)==n_pts, 'invalid data')
             assert(size(lb_scale, 2)==1, 'invalid data')
             assert(size(ub_scale, 2)==1, 'invalid data')
