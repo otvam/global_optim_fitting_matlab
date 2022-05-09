@@ -5,7 +5,7 @@ cst_scalar = 0.5;
 cst_vector = [1.0 ; 1.5];
 var_scalar = 0.5;
 var_vector = [1.5 ; 2.5];
-[val, wgt, n_fit] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, true);
+[val, wgt] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, true);
 
 %% variables
 var_fix = {};
@@ -21,7 +21,7 @@ var_opt{end+1} = struct('name', 'var_vector', 'x0', [1.5, 2.5], 'lb', 1.0, 'ub',
 var_err = struct('type', 'norm', 'arg', 8);
 
 %% error function
-fct_err = @(param, n) get_fct_err(param, n, n_fit, val, wgt);
+fct_err = @(param, n) get_fct_err(param, n, val, wgt);
 
 %% format
 format.err = struct('spec', '%.3f', 'scale', 1e2, 'unit', '%');
@@ -32,7 +32,7 @@ format.param.var_vector = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 
 end
 
-function [err_mat, wgt_mat, n_fit] = get_fct_err(param, n_pts, n_fit, val, wgt)
+function [err_mat, wgt_mat] = get_fct_err(param, n_pts, val, wgt)
 
 cst_scalar = param.cst_scalar;
 cst_vector = param.cst_vector;
@@ -48,13 +48,12 @@ err_mat = abs(err_mat);
 
 end
 
-function [val, wgt, n_fit] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, add_noise)
+function [val, wgt] = get_model(cst_scalar, cst_vector, var_scalar, var_vector, add_noise)
 
 % get the points composing the dataset
 x_vec = linspace(1, 5, 10);
 y_vec = linspace(1, 5, 10);
 [x_mat, y_mat] = ndgrid(x_vec, y_vec);
-n_fit = length(x_vec).*length(y_vec);
 
 % get the weigts, double the weight for the edges
 wgt_mat = ones(length(x_vec), length(y_vec));

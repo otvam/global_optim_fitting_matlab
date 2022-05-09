@@ -54,20 +54,24 @@ classdef SolverVar < handle
             end
         end
         
-        function err = get_scale_err(self, err_mat, wgt_mat)
+        function [err_best, n_set] = get_scale_err(self, err_mat, wgt_mat)
             
             % extract
             type = self.var_err.type;
             arg = self.var_err.arg;
             
+            % check
+            assert(all(size(err_mat)==size(wgt_mat)), 'invalid data')
+            n_set = (size(err_mat, 1)+size(wgt_mat, 1))./2;
+            
             % get error metrics
             switch type
                 case 'error'
-                    err = SolverUtils.get_error(err_mat, wgt_mat, arg);
+                    err_best = SolverUtils.get_error(err_mat, wgt_mat, arg);
                 case 'norm'
-                    err = SolverUtils.get_norm(err_mat, wgt_mat, arg);
+                    err_best = SolverUtils.get_norm(err_mat, wgt_mat, arg);
                 case 'percentile'
-                    err = SolverUtils.get_percentile(err_mat, wgt_mat, arg);
+                    err_best = SolverUtils.get_percentile(err_mat, wgt_mat, arg);
                 otherwise
                     error('invalid data')
             end

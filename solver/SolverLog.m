@@ -6,7 +6,7 @@ classdef SolverLog < handle
     %
     %    Thomas Guillod.
     %    2021-2022 - BSD License.
-
+    
     %% properties
     properties (SetAccess = private, GetAccess = private)
         solver_type % name of the used solver
@@ -14,7 +14,7 @@ classdef SolverLog < handle
         log_final % log (or not) the solver final results
         data_optim % data required for the logging (error function and variable scaling)
         format % structure with formatting instructions (name and unit)
-
+        
         t_start % timestamp set at the initialization
         t_last % timestamp of the last iteration
         optim % cell containing the logged data
@@ -45,7 +45,7 @@ classdef SolverLog < handle
             if self.log_iter==false
                 return
             end
-
+            
             % get the total solver time and the time of the last iteration
             t_now = datetime('now');
             t_solver = t_now-self.t_start;
@@ -108,12 +108,12 @@ classdef SolverLog < handle
             fprintf('    %s\n', name)
             err = format.err;
             param = format.param;
-                                    
+            
             % displat the solver figures of merit
             fprintf('        fom\n')
             fprintf('            msg\n')
             for i=1:length(optim.sol_fom.msg)
-                fprintf('            %s\n', optim.sol_fom.msg{i})
+                fprintf('                %s\n', optim.sol_fom.msg{i})
             end
             fprintf('            status\n')
             fprintf('                is_valid = %s\n',  mat2str(optim.sol_fom.is_valid))
@@ -129,54 +129,54 @@ classdef SolverLog < handle
             fprintf('                n_pop_fail = %d\n', optim.sol_fom.n_pop_fail)
             fprintf('                err_best = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
             
-                        if optim.has_solution==true
-            % display the error metrics
-            fprintf('        err_fom\n')
-            fprintf('            size\n')
-            fprintf('                n_set = %d\n', optim.err_fom.n_set)
-            fprintf('                err_best = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
-            fprintf('            weight\n')
-            fprintf('                wgt_sum = %.3f\n', optim.err_fom.wgt_sum)
-            fprintf('                wgt_avg = %.3f\n', optim.err_fom.wgt_avg)
-            if optim.err_fom.n_set>1
-                fprintf('            avg\n')
-                fprintf('                avg = %s\n', SolverLog.get_format_scalar(optim.err_fom.avg, err))
-                fprintf('                min = %s\n', SolverLog.get_format_scalar(optim.err_fom.min, err))
-                fprintf('                max = %s\n', SolverLog.get_format_scalar(optim.err_fom.max, err))
-                fprintf('            norm\n')
-                fprintf('                norm_n_1 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_1, err))
-                fprintf('                norm_n_2 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_2, err))
-                fprintf('                norm_n_4 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_4, err))
-                fprintf('                norm_n_6 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_6, err))
-                fprintf('                norm_n_8 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_8, err))
-                fprintf('                norm_n_10 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_10, err))
-                fprintf('                norm_n_12 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_12, err))
-                fprintf('                norm_inf = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_inf, err))
-                fprintf('            percentile\n')
-                fprintf('                percentile_50 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_50, err))
-                fprintf('                percentile_75 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_75, err))
-                fprintf('                percentile_90 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_90, err))
-                fprintf('                percentile_95 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_95, err))
-                fprintf('                percentile_99 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_99, err))
+            if optim.has_solution==true
+                % display the error metrics
+                fprintf('        err_fom\n')
+                fprintf('            size\n')
+                fprintf('                n_set = %d\n', optim.err_fom.n_set)
+                fprintf('                err_best = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
+                fprintf('            weight\n')
+                fprintf('                wgt_sum = %.3f\n', optim.err_fom.wgt_sum)
+                fprintf('                wgt_avg = %.3f\n', optim.err_fom.wgt_avg)
+                if optim.err_fom.n_set>1
+                    fprintf('            avg\n')
+                    fprintf('                avg = %s\n', SolverLog.get_format_scalar(optim.err_fom.avg, err))
+                    fprintf('                min = %s\n', SolverLog.get_format_scalar(optim.err_fom.min, err))
+                    fprintf('                max = %s\n', SolverLog.get_format_scalar(optim.err_fom.max, err))
+                    fprintf('            norm\n')
+                    fprintf('                norm_n_1 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_1, err))
+                    fprintf('                norm_n_2 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_2, err))
+                    fprintf('                norm_n_4 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_4, err))
+                    fprintf('                norm_n_6 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_6, err))
+                    fprintf('                norm_n_8 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_8, err))
+                    fprintf('                norm_n_10 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_10, err))
+                    fprintf('                norm_n_12 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_12, err))
+                    fprintf('                norm_inf = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_inf, err))
+                    fprintf('            percentile\n')
+                    fprintf('                percentile_50 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_50, err))
+                    fprintf('                percentile_75 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_75, err))
+                    fprintf('                percentile_90 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_90, err))
+                    fprintf('                percentile_95 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_95, err))
+                    fprintf('                percentile_99 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_99, err))
+                end
+                
+                % display the current best parameter combinations
+                fprintf('        param\n')
+                field = fieldnames(optim.param);
+                for i=1:length(field)
+                    value = optim.param.(field{i});
+                    param_tmp = param.(field{i});
+                    fprintf('            param.%s = %s\n', field{i}, SolverLog.get_format_vec(value, param_tmp))
+                end
+                
+                % display if the parameters are close to the bounds
+                fprintf('        bnd\n')
+                field = fieldnames(optim.bnd);
+                for i=1:length(field)
+                    value = optim.bnd.(field{i});
+                    fprintf('            bnd.%s = %s\n', field{i}, SolverLog.get_format_bnd(value))
+                end
             end
-            
-            % display the current best parameter combinations
-            fprintf('        param\n')
-            field = fieldnames(optim.param);
-            for i=1:length(field)
-                value = optim.param.(field{i});
-                param_tmp = param.(field{i});
-                fprintf('            param.%s = %s\n', field{i}, SolverLog.get_format_vec(value, param_tmp))
-            end
-            
-            % display if the parameters are close to the bounds
-            fprintf('        bnd\n')
-            field = fieldnames(optim.bnd);
-            for i=1:length(field)
-                value = optim.bnd.(field{i});
-                fprintf('            bnd.%s = %s\n', field{i}, SolverLog.get_format_bnd(value))
-            end
-                        end
         end
         
         function txt = get_format_scalar(val, format)
@@ -193,7 +193,7 @@ classdef SolverLog < handle
             % add unit
             txt = [txt ' ' unit];
         end
-
+        
         function txt = get_format_vec(vec, format)
             % Parse a vector to a string with scaling and units.
             
@@ -201,7 +201,7 @@ classdef SolverLog < handle
             spec = format.spec;
             scale = format.scale;
             unit = format.unit;
-                        
+            
             % parse each elements
             for i=1:length(vec)
                 txt{i} = sprintf(spec, scale.*vec(i));
@@ -213,7 +213,7 @@ classdef SolverLog < handle
             % add unit
             txt = [txt ' ' unit];
         end
-
+        
         function txt = get_format_bnd(vec)
             % Parse a boolean vector to string.
             
@@ -288,7 +288,7 @@ classdef SolverLog < handle
                 end
                 t_solver_conv_vec(i) = t_solver;
             end
-                        
+            
             % plot all iterations
             figure('name', [name ' / all'])
             
@@ -320,15 +320,15 @@ classdef SolverLog < handle
             % extract
             fct_sol = data_optim.fct_sol;
             fct_unscale = data_optim.fct_unscale;
-                 
+            
             % check
             has_solution = (isempty(x_scale)==false)&&(isempty(err)==false)&&any(isfinite(err));
-
+            
             % check solution
-            if has_solution==true            
+            if has_solution==true
                 [~, idx_best] = min(err);
                 x_scale = x_scale(:,idx_best);
-                                
+                
                 % extract the parameter structure from a raw data (transformation and normalization)
                 [n_pts, param, bnd, is_bound] = fct_unscale(x_scale);
                 assert(n_pts==1, 'invalid size: solution')
@@ -349,7 +349,7 @@ classdef SolverLog < handle
             
             % get fom
             sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
-                                    
+            
             % assign base data
             optim.has_solution = has_solution;
             optim.sol_fom = sol_fom;

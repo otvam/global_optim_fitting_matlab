@@ -8,10 +8,9 @@ cache.n_cache = 1e3;
 cache.tol_cache = 1e-12;
 
 optimizer = {};
-% optimizer{end+1} = get_optimizer('init');
-% optimizer{end+1} = get_optimizer('ga');
-% optimizer{end+1} = get_optimizer('fminsearch');
-optimizer{end+1} = get_optimizer('surrogateopt');
+optimizer{end+1} = get_optimizer('init');
+optimizer{end+1} = get_optimizer('ga');
+optimizer{end+1} = get_optimizer('fminsearch');
 
 end
 
@@ -21,7 +20,7 @@ function optimizer = get_optimizer(solver_type)
 % fitting options (MATLAB optimizer option)
 switch solver_type
     case 'init'
-        options.n_batch = 500;
+        options.n_batch = 50;
         options.n_tot = 50;
         options.n_eval_max = 5e3;
         options.val_lim = 0.3;

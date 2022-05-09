@@ -91,11 +91,7 @@ classdef SolverRun < handle
             % get the logging data
             optim = obj_log.get_optim();
         end
-        
-        
-        
-        
-        
+                
         function [err_mat, wgt_mat] = get_cache(x_scale, fct_err, fct_unscale)
                         
             % unscale variables
@@ -106,38 +102,35 @@ classdef SolverRun < handle
             
         end
         
-        function [err, err_mat, wgt_mat] = get_sol(x_scale, fct_err, fct_unscale, fct_scale_err)
+        function [err_best, n_set, err_mat, wgt_mat] = get_sol(x_scale, fct_err, fct_unscale, fct_scale_err)
             % Error function that will be called by the different solvers.
-            
             
             % evaluate the function
             if isempty(x_scale)
-                err = [];
+                err_best = [];
+                n_set = [];
                 err_mat = [];
                 wgt_mat = [];
             else
                 [err_mat, wgt_mat] = SolverRun.get_cache(x_scale, fct_err, fct_unscale);
-                err = fct_scale_err(err_mat, wgt_mat);
+                [err_best, n_set] = fct_scale_err(err_mat, wgt_mat);
             end
-            
-            % reshape
-            err = err.';
         end
         
-        function err = get_sol_recover(x_scale, fct_sol, recover_val)
+        function err_best = get_sol_recover(x_scale, fct_sol, recover_val)
             
             % reshape
             x_scale = x_scale.';
             
             % get error
-            err = fct_sol(x_scale);
+            err_best = fct_sol(x_scale);
             
             % replace invalid values
-            idx = isfinite(err)==false;
-            err(idx) = recover_val;
+            idx = isfinite(err_best)==false;
+            err_best(idx) = recover_val;
             
             % reshape
-            err = err.';
+            err_best = err_best.';
         end
     end
 end

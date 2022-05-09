@@ -1,14 +1,16 @@
-function [var_opt, var_fix, fct_err, format] = get_param_optim()
+function [var_opt, var_fix, var_err, fct_err, format] = get_param_optim()
 
 var_fix = {};
-var_fix{end+1} = struct('name', 'cst_scalar', 'x', 0.5, 'idx', 1);
-var_fix{end+1} = struct('name', 'cst_vector', 'x', 1.5, 'idx', 1);
-var_fix{end+1} = struct('name', 'cst_vector', 'x', 2.5, 'idx', 2);
+var_fix{end+1} = struct('name', 'cst_scalar', 'x0', 0.5, 'idx', 1);
+var_fix{end+1} = struct('name', 'cst_vector', 'x0', 1.5, 'idx', 1);
+var_fix{end+1} = struct('name', 'cst_vector', 'x0', 2.5, 'idx', 2);
 
 var_opt = {};
-var_opt{end+1} = struct('name', 'var_scalar', 'x0', 0.5, 'lb', 0.1, 'ub', 1.0, 'scale', 'log', 'norm', true, 'idx', 1);
-var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'scale', 'lin', 'norm', true, 'idx', 1);
-var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'scale', 'lin', 'norm', true, 'idx', 2);
+var_opt{end+1} = struct('name', 'var_scalar', 'x0', 0.5, 'lb', 0.1, 'ub', 1.0, 'tol_bnd', 0.05, 'trf', 'log', 'norm', true, 'idx', 1);
+var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'tol_bnd', 0.05, 'trf', 'lin', 'norm', true, 'idx', 1);
+var_opt{end+1} = struct('name', 'var_vector', 'x0', 2.0, 'lb', 1.0, 'ub', 3.0, 'tol_bnd', 0.05, 'trf', 'lin', 'norm', true, 'idx', 2);
+
+var_err = struct('type', 'norm', 'arg', 8);
 
 fct_err = @(param, n) get_fct_err(param, n);
 
