@@ -29,20 +29,29 @@ classdef SolverUtils < handle
             % replace invalid data
             out(idx_nan) = NaN;
         end
-
-        function out = get_avg(err_mat, wgt_mat)
-            % Get the average on a error vector with specified weights.
+        
+        function out = get_error(err_mat, wgt_mat, type)
+            % Get the minimum of a vector.
             
             % check
             idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
             
-            % compute the average
-            out = sum(err_mat.*wgt_mat, 1)./sum(wgt_mat, 1);
+            % compute the value
+            switch type
+                case 'avg'
+                    out = sum(err_mat.*wgt_mat, 1)./sum(wgt_mat, 1);
+                case 'min'
+                    out = min(err_mat, [], 1);
+                case 'max'
+                    out = max(err_mat, [], 1);
+                otherwise
+                    error('invalid data')
+            end
             
             % replace invalid data
             out(idx_nan) = NaN;
         end
-
+        
         function out = get_percentile(err_mat, wgt_mat, percentile)
             % Get the percentile on a error vector.
             

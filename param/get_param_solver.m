@@ -1,19 +1,17 @@
-function solver = get_param_solver()
+function [cache, optimizer] = get_param_solver()
 % Select the fitting option and variables.
 
 % assign solver parameters
-solver.use_cache = true;
-solver.vec_cache = true;
-solver.n_cache = 1e3;
-solver.tol_cache = 1e-12;
+cache.use_cache = true;
+cache.vec_cache = true;
+cache.n_cache = 1e3;
+cache.tol_cache = 1e-12;
 
-solver.tol_bound = 0.05;
-solver.error_norm = 8.0;
-
-solver.optimizer = {};
-solver.optimizer{end+1} = get_optimizer('init');
-solver.optimizer{end+1} = get_optimizer('ga');
-solver.optimizer{end+1} = get_optimizer('fminsearch');
+optimizer = {};
+% optimizer{end+1} = get_optimizer('init');
+% optimizer{end+1} = get_optimizer('ga');
+% optimizer{end+1} = get_optimizer('fminsearch');
+optimizer{end+1} = get_optimizer('surrogateopt');
 
 end
 

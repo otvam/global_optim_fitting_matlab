@@ -38,14 +38,14 @@ classdef SolverLog < handle
             self.optim = {};
         end
         
-        function get_iter(self, x_unclamp, err, n_iter, n_eval, msg)
+        function get_iter(self, x_scale, err, n_iter, n_eval, msg)
             % Log and display the solver progress after an iteration.
             
             % get if logging is required
-            if self.log_iter==false
+            if (self.log_iter==false)||isempty(x_scale)||isempty(err)
                 return
             end
-            
+
             % get the total solver time and the time of the last iteration
             t_now = datetime('now');
             t_solver = t_now-self.t_start;
@@ -57,7 +57,7 @@ classdef SolverLog < handle
             msg = sprintf('intermediate results\nstate: %s', msg);
             
             % get and add the logging data
-            optim_tmp = SolverLog.get_log(x_unclamp, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
+            optim_tmp = SolverLog.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
             self.optim{end+1} = optim_tmp;
             
             % display the data
@@ -65,11 +65,11 @@ classdef SolverLog < handle
             SolverLog.get_disp(name, self.optim{end}, self.format)
         end
         
-        function get_final(self, x_unclamp, err, n_iter, n_eval, msg, is_valid)
+        function get_final(self, x_scale, err, n_iter, n_eval, msg, is_valid)
             % Log, display, and plot the solver results after the final iteration.
             
             % get if logging is required
-            if self.log_final==false
+            if (self.log_final==false)||isempty(x_scale)||isempty(err)
                 return
             end
             
@@ -82,7 +82,7 @@ classdef SolverLog < handle
             msg = sprintf('final results\n%s', msg);
             
             % get and add the logging data
-            optim_tmp = SolverLog.get_log(x_unclamp, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
+            optim_tmp = SolverLog.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, self.data_optim);
             self.optim{end+1} = optim_tmp;
             
             % display and plot the data
@@ -316,7 +316,6 @@ classdef SolverLog < handle
 
             % get the error metrics (handle empty/invalid points)
             if all(isnan(x_scale))
-                err_wgt_vec = NaN;
                 err_vec = NaN;
                 wgt_vec = NaN;
                 err = NaN;
@@ -326,9 +325,6 @@ classdef SolverLog < handle
                 
                 % get error metrics
                 err = SolverUtils.get_norm(err_vec, wgt_vec, 2);
-                
-                % get the weighted error vector
-                err_wgt_vec = repelem(err_vec, round(wgt_vec));
             end
                         
                                     
@@ -339,7 +335,7 @@ classdef SolverLog < handle
             sol_fom = SolverLog.get_sol_fom(is_valid, is_bound, err, n_iter, n_eval, pop_valid, t_solver, t_iter);
             
             % parse the error metrics
-            err_fom = SolverLog.get_err_fom(err_vec, wgt_vec, err_wgt_vec);
+            err_fom = SolverLog.get_err_fom(err_vec, wgt_vec);
             
             % assign
             optim.param = param;

@@ -90,23 +90,49 @@ classdef SolverRun < handle
             optim = obj_log.get_optim();
         end
         
-        function err = get_sol(x_scale, fct_err, fct_unscale, recover_val)
-            % Error function that will be called by the different solvers.
-            
+        
+        
+        
+        
+        function [err_mat, wgt_mat] = get_cache(x_scale, fct_err, fct_unscale)
+                        
             % unscale variables
-            x_scale = x_scale.';
             [n_pts, param] = fct_unscale(x_scale);
 
             % call the error function
             [err_mat, wgt_mat] = fct_err(param, n_pts);
             
-            % get error metrics
+        end
+        
+        function [err, err_mat, wgt_mat, err_wgt_vec] = get_sol(x_scale, fct_err, fct_unscale, recover_val)
+            % Error function that will be called by the different solvers.
+            
+            % reshape
+            x_scale = x_scale.';
+            
+            if isempty(x_scale)
+                err = [];
+                err_mat = [];
+                wgt_mat = [];
+                err_wgt_vec = [];
+            else
+                [err_mat, wgt_mat] = SolverRun.get_cache(x_scale, fct_err, fct_unscale);
+                
+                            % get error metrics
             err = SolverUtils.get_norm(err_mat, wgt_mat, 2);
+
+%                 [err, err_wgt_vec] = fct_error(err_mat, wgt_mat);
+            end
+            
             
             % replace bad values by the specified value
             idx = isfinite(err)==false;
             err(idx) = recover_val;
             err = err.';
+
+            
+            
+            
         end
     end
 end

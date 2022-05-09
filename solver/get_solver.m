@@ -1,4 +1,4 @@
-function [param, optim] = get_solver(var_opt, var_fix, fct_err, format, solver)
+function [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format, cache, optimizer)
 % Fit parameters with respect to a dataset with advanced solvers.
 %
 %    This function provides a common interface for different solvers
@@ -45,18 +45,9 @@ function [param, optim] = get_solver(var_opt, var_fix, fct_err, format, solver)
 %    Thomas Guillod.
 %    2021-2022 - BSD License.
 
-% extract the solver data
-optimizer = solver.optimizer;
-n_cache = solver.n_cache;
-tol_cache = solver.tol_cache;
-use_cache = solver.use_cache;
-vec_cache = solver.vec_cache;
-tol_bound = solver.tol_bound;
-error_norm = solver.error_norm;
-
 % object managing the variables (name, bounds, transformation, normalization, etc.)
 fprintf('get var\n')
-obj_var = SolverVar(var_opt, var_fix);
+obj_var = SolverVar(var_opt, var_fix, var_err);
 
 % object managing the cache for the error function
 % fprintf('get cache\n')
@@ -76,29 +67,5 @@ end
 
 % solution should be a single parameter combination
 assert(n_pts==1, 'invalid solution')
-
-end
-
-function [err, err_mat, wgt_mat] = get_err_cache(x_scale, obj_var, fct_err, error_norm)
-% Error function used by the solver (through the cache).
-
-% extract the parameter structure from a raw matrix (transformation and normalization)
-[n_pts, param] = obj_var.get_param(x_scale);
-
-% call the provided error function
-[err_mat, wgt_mat, n_fit] = fct_err(param, n_pts);
-
-% check size
-assert(size(err_mat, 1)==n_fit, 'invalid size: err_mat')
-assert(size(wgt_mat, 1)==n_fit, 'invalid size: wgt_mat')
-assert(size(err_mat, 2)==n_pts, 'invalid size: err_mat')
-assert(size(wgt_mat, 2)==n_pts, 'invalid size: wgt_mat')
-
-% reshape and check size
-err_mat = err_mat.';
-wgt_mat = wgt_mat.';
-
-% get the error norm
-err = SolverUtils.get_norm(err_mat, wgt_mat, error_norm);
 
 end

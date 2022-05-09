@@ -13,16 +13,18 @@ classdef SolverVar < handle
     properties (SetAccess = private, GetAccess = private)
         var_opt % description of the parameters to be fitted
         var_fix % description of the parameters with fixed values
+        var_err
     end
     
     %% public
     methods (Access = public)
-        function self = SolverVar(var_opt, var_fix)
+        function self = SolverVar(var_opt, var_fix, var_err)
             % Constructor.
 
             % set data
             self.var_opt = var_opt;
             self.var_fix = var_fix;
+            self.var_err = var_err;
         end
         
         function [n_pts, param] = get_init(self)
@@ -51,6 +53,14 @@ classdef SolverVar < handle
                 param.(name)(idx,:) = repmat(x0, n_pts, 1);
             end
         end
+        
+        function get_scale_err(self, err)
+            
+            
+            ub_trf = SolverUtils.get_var_trf(ub, trf, false);
+        end
+        
+        
         
         function [n_var, x_scale, lb_scale, ub_scale] = get_scale(self, n_pts, param, clamp_bnd)
             % Extract the raw matrix from the parameter structure.
