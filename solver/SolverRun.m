@@ -71,7 +71,7 @@ classdef SolverRun < handle
             % Call a solver and manage the logging.
             
             % logging function to be called after each solver iteration
-            fct_iter = @(x_scale, err, n_iter, n_eval, msg) obj_log.get_iter(x_scale.', err.', n_iter, n_eval, msg);
+            fct_iter = @(x_scale, err, n_iter, n_eval, msg, is_valid) obj_log.get_iter(x_scale.', err.', n_iter, n_eval, msg, is_valid);
             
             % logging function to be called after the final solver iteration
             fct_final = @(x_scale, err, n_iter, n_eval, msg, is_valid) obj_log.get_final(x_scale.', err.', n_iter, n_eval, msg, is_valid);

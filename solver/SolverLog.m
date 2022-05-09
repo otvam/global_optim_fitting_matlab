@@ -31,7 +31,7 @@ classdef SolverLog < handle
             self.log_iter = log_iter;
             self.log_final = log_final;
             self.fct_unscale = fct_unscale;
-                        self.fct_sol = fct_sol;
+            self.fct_sol = fct_sol;
             self.format = format;
             
             % init the timing and logging data
@@ -40,7 +40,7 @@ classdef SolverLog < handle
             self.optim = {};
         end
         
-        function get_iter(self, x_scale, err, n_iter, n_eval, msg)
+        function get_iter(self, x_scale, err, n_iter, n_eval, msg, is_valid)
             % Log and display the solver progress after an iteration.
             
             % get if logging is required
@@ -48,14 +48,10 @@ classdef SolverLog < handle
                 return
             end
             
-            % get the total solver time and the time of the last iteration
-            t_now = datetime('now');
-            t_solver = t_now-self.t_start;
-            t_iter = t_now-self.t_last;
-            self.t_last = t_now;
-            
+            % get the total solver timing
+             [t_solver, t_iter] = get_time(self, n_iter, false);
+                         
             % get message
-            is_valid = true;
             msg = sprintf('intermediate results\nstate: %s', msg);
             
             % get and add the logging data
@@ -75,10 +71,8 @@ classdef SolverLog < handle
                 return
             end
             
-            % get the total solver time and the average time per iteration
-            t_now = datetime('now');
-            t_solver = t_now-self.t_start;
-            t_iter = t_solver./(n_iter+1);
+            % get the total solver timing
+             [t_solver, t_iter] = get_time(self, n_iter, true);
             
             % get message
             msg = sprintf('final results\n%s', msg);
@@ -98,46 +92,6 @@ classdef SolverLog < handle
             % Get the logged data.
             
             optim = self.optim;
-        end
-        
-        function optim = get_log(self, x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter)
-            % Parse and assign the logging data for an iteration.
-                        
-            % check
-            has_solution = (isempty(x_scale)==false)&&(isempty(err)==false)&&any(isfinite(err));
-            
-            % check solution
-            if has_solution==true
-                [~, idx_best] = min(err);
-                x_scale = x_scale(:,idx_best);
-                
-                % extract the parameter structure from a raw data (transformation and normalization)
-                [n_pts, param, bnd, is_bound] = self.fct_unscale(x_scale);
-                assert(n_pts==1, 'invalid size: solution')
-                
-                % get the error metrics
-                [err_best, n_set, err_vec, wgt_vec] = self.fct_sol(x_scale);
-                
-                % get error metrics
-                err_fom = SolverLog.get_err_fom(err_best, n_set, err_vec, wgt_vec);
-            else
-                param = [];
-                bnd = [];
-                err_fom = [];
-                err = NaN;
-                is_valid = false;
-                is_bound = false;
-            end
-            
-            % get fom
-            sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
-            
-            % assign base data
-            optim.has_solution = has_solution;
-            optim.sol_fom = sol_fom;
-            optim.param = param;
-            optim.bnd = bnd;
-            optim.err_fom = err_fom;
         end
     end
     
@@ -219,53 +173,6 @@ classdef SolverLog < handle
                     fprintf('            bnd.%s = %s\n', field{i}, SolverLog.get_format_bnd(value))
                 end
             end
-        end
-        
-        function txt = get_format_scalar(val, format)
-            % Parse a scalar to a string with scaling and units.
-            
-            % extract
-            spec = format.spec;
-            scale = format.scale;
-            unit = format.unit;
-            
-            % parse each elements
-            txt = sprintf(spec, scale.*val);
-            
-            % add unit
-            txt = [txt ' ' unit];
-        end
-        
-        function txt = get_format_vec(vec, format)
-            % Parse a vector to a string with scaling and units.
-            
-            % extract
-            spec = format.spec;
-            scale = format.scale;
-            unit = format.unit;
-            
-            % parse each elements
-            for i=1:length(vec)
-                txt{i} = sprintf(spec, scale.*vec(i));
-            end
-            
-            % assemble the string
-            txt = sprintf('[%s]', strjoin(txt, ' ; '));
-            
-            % add unit
-            txt = [txt ' ' unit];
-        end
-        
-        function txt = get_format_bnd(vec)
-            % Parse a boolean vector to string.
-            
-            % parse each elements
-            for i=1:length(vec)
-                txt{i} = mat2str(vec(i));
-            end
-            
-            % assemble the string
-            txt = sprintf('[%s]', strjoin(txt, ' ; '));
         end
         
         function get_plot_single(name, optim, format)
@@ -354,8 +261,117 @@ classdef SolverLog < handle
         end
     end
     
+    %% private api
+    methods( Access = private)
+        function [t_solver, t_iter] = get_time(self, n_iter, is_final)
+            
+            % get current time
+            t_now = datetime('now');
+            
+            % get total solver time
+            t_solver = t_now-self.t_start;
+            
+            % the time of the last iteration or average time per iteration
+            if is_final==true
+                t_iter = t_solver./(n_iter+1);
+            else
+                t_iter = t_now-self.t_last;
+            end
+            
+            % update the iteration timestamp
+            self.t_last = t_now;
+        end
+        
+        function optim = get_log(self, x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter)
+            % Parse and assign the logging data for an iteration.
+            
+            % check
+            has_solution = (isempty(x_scale)==false)&&(isempty(err)==false)&&any(isfinite(err));
+            
+            % check solution
+            if has_solution==true
+                [~, idx_best] = min(err);
+                x_scale = x_scale(:,idx_best);
+                
+                % extract the parameter structure from a raw data (transformation and normalization)
+                [n_pts, param, bnd, is_bound] = self.fct_unscale(x_scale);
+                assert(n_pts==1, 'invalid size: solution')
+                
+                % get the error metrics
+                [err_best, n_set, err_vec, wgt_vec] = self.fct_sol(x_scale);
+                
+                % get error metrics
+                err_fom = SolverLog.get_err_fom(err_best, n_set, err_vec, wgt_vec);
+            else
+                param = [];
+                bnd = [];
+                err_fom = [];
+                err_best = NaN;
+                is_valid = false;
+                is_bound = false;
+            end
+            
+            % get fom
+            sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
+            
+            % assign base data
+            optim.has_solution = has_solution;
+            optim.sol_fom = sol_fom;
+            optim.param = param;
+            optim.bnd = bnd;
+            optim.err_fom = err_fom;
+        end
+    end
+    
     %% private static api
     methods(Static, Access = private)
+        function txt = get_format_scalar(val, format)
+            % Parse a scalar to a string with scaling and units.
+            
+            % extract
+            spec = format.spec;
+            scale = format.scale;
+            unit = format.unit;
+            
+            % parse each elements
+            txt = sprintf(spec, scale.*val);
+            
+            % add unit
+            txt = [txt ' ' unit];
+        end
+        
+        function txt = get_format_vec(vec, format)
+            % Parse a vector to a string with scaling and units.
+            
+            % extract
+            spec = format.spec;
+            scale = format.scale;
+            unit = format.unit;
+            
+            % parse each elements
+            for i=1:length(vec)
+                txt{i} = sprintf(spec, scale.*vec(i));
+            end
+            
+            % assemble the string
+            txt = sprintf('[%s]', strjoin(txt, ' ; '));
+            
+            % add unit
+            txt = [txt ' ' unit];
+        end
+        
+        function txt = get_format_bnd(vec)
+            % Parse a boolean vector to string.
+            
+            % parse each elements
+            for i=1:length(vec)
+                txt{i} = mat2str(vec(i));
+            end
+            
+            % assemble the string
+            txt = sprintf('[%s]', strjoin(txt, ' ; '));
+        end
+        
         function sol_fom = get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter)
             
             % check population

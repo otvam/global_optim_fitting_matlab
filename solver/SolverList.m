@@ -83,7 +83,7 @@ classdef SolverList < handle
                 x = x(idx,:);
                 x = x(1:n_tot,:);
                 err = err(1:n_tot,:);
-
+                
                 is_valid = true;
                 msg = 'number of solutions is sufficient';
             end
@@ -236,9 +236,10 @@ classdef SolverList < handle
             n_iter = optim.iteration;
             n_eval = optim.funccount;
             err = optim.fval;
-                        
+            
             % call the display and logging function
-            fct_iter(x, err, n_iter, n_eval, msg);
+            is_valid = isempty(x)==false;
+            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
             
             % do not stop the solver
             stop = false;
@@ -254,7 +255,8 @@ classdef SolverList < handle
             err = [optim.bestfval ; optim.swarmfvals];
             
             % call the display and logging function
-            fct_iter(x, err, n_iter, n_eval, msg);
+            is_valid = isempty(x)==false;
+            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
             
             % do not stop the solver
             stop = false;
@@ -270,7 +272,8 @@ classdef SolverList < handle
             err = optim.Score;
             
             % call the display and logging function
-            fct_iter(x, err, n_iter, n_eval, msg);
+            is_valid = isempty(x)==false;
+            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
             
             % do not stop the solver
             optchanged = false;
@@ -291,7 +294,9 @@ classdef SolverList < handle
             err = [err ; err_tmp(idx,:)];
             
             % call the display and logging function
-            fct_iter(x, err, n_iter, n_eval, 'iter');
+            msg = 'iter';
+            is_valid = isempty(x)==false;
+            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
         end
     end
 end
