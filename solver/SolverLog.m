@@ -135,10 +135,15 @@ classdef SolverLog < handle
             if (length(optim.err_vec)>1)||(length(optim.wgt_vec)>1)
                 fprintf('        err_fom\n')
                 fprintf('            size\n')
-                fprintf('                n_rep = %d\n', optim.err_fom.n_rep)
                 fprintf('                n_all = %d\n', optim.err_fom.n_all)
+                fprintf('                wgt_sum = %.3f\n', optim.err_fom.wgt_sum)
+                fprintf('                wgt_avg = %.3f\n', optim.err_fom.wgt_avg)
+                fprintf('            avg\n')
+                fprintf('                avg = %s\n', SolverLog.get_format_scalar(optim.err_fom.avg, err))
+                fprintf('                min = %s\n', SolverLog.get_format_scalar(optim.err_fom.min, err))
+                fprintf('                max = %s\n', SolverLog.get_format_scalar(optim.err_fom.max, err))
                 fprintf('            norm\n')
-                fprintf('                norm_avg = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_avg, err))
+                fprintf('                norm_n_1 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_1, err))
                 fprintf('                norm_n_2 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_2, err))
                 fprintf('                norm_n_4 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_4, err))
                 fprintf('                norm_n_6 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_6, err))
@@ -294,7 +299,7 @@ classdef SolverLog < handle
             % Parse and assign the logging data for an iteration.
             
             % extract
-            fct_err = data_optim.fct_err;
+            fct_sol = data_optim.fct_sol;
             fct_unscale = data_optim.fct_unscale;
             n_var = data_optim.n_var;
             
@@ -321,7 +326,7 @@ classdef SolverLog < handle
                 err = NaN;
             else
                 % get the error metrics
-                [err_vec, wgt_vec] = fct_err(param, n_pts);
+                [err, err_vec, wgt_vec] = fct_sol(x_scale);
                 
                 % get error metrics
                 err = SolverUtils.get_norm(err_vec, wgt_vec, 2);
@@ -340,7 +345,6 @@ classdef SolverLog < handle
             % assign
             optim.param = param;
             optim.bnd = bnd;
-            optim.err_wgt_vec = err_wgt_vec;
             optim.err_vec = err_vec;
             optim.wgt_vec = wgt_vec;
             optim.err_fom = err_fom;
@@ -370,11 +374,19 @@ classdef SolverLog < handle
             sol_fom.t_iter = t_iter;
         end
         
-        function err_fom = get_err_fom(err_vec, wgt_vec, err_wgt_vec)
+        function err_fom = get_err_fom(err_vec, wgt_vec)
             % Parse the error metrics.
             
             % get the error for different types of norms
-            err_fom.norm_avg = SolverUtils.get_norm(err_vec, wgt_vec, 1);
+            err_fom.n_all = length(err_vec);
+            err_fom.wgt_sum = sum(wgt_vec);
+            err_fom.wgt_avg = sum(wgt_vec)./length(wgt_vec);
+            
+            err_fom.avg = SolverUtils.get_error(err_vec, wgt_vec, 'avg');
+            err_fom.min = SolverUtils.get_error(err_vec, wgt_vec, 'min');
+            err_fom.max = SolverUtils.get_error(err_vec, wgt_vec, 'max');
+            
+            err_fom.norm_n_1 = SolverUtils.get_norm(err_vec, wgt_vec, 1);
             err_fom.norm_n_2 = SolverUtils.get_norm(err_vec, wgt_vec, 2);
             err_fom.norm_n_4 = SolverUtils.get_norm(err_vec, wgt_vec, 4);
             err_fom.norm_n_6 = SolverUtils.get_norm(err_vec, wgt_vec, 6);
@@ -384,15 +396,11 @@ classdef SolverLog < handle
             err_fom.norm_inf = SolverUtils.get_norm(err_vec, wgt_vec, Inf);
             
             % get error for different percentiles
-            err_fom.percentile_50 = SolverUtils.get_percentile(err_wgt_vec, 0.50);
-            err_fom.percentile_75 = SolverUtils.get_percentile(err_wgt_vec, 0.75);
-            err_fom.percentile_90 = SolverUtils.get_percentile(err_wgt_vec, 0.90);
-            err_fom.percentile_95 = SolverUtils.get_percentile(err_wgt_vec, 0.95);
-            err_fom.percentile_99 = SolverUtils.get_percentile(err_wgt_vec, 0.99);
-            
-            % get the size of the error vector and the weighted error vector 
-            err_fom.n_rep = length(err_wgt_vec);
-            err_fom.n_all = length(err_vec);
+            err_fom.percentile_50 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.50);
+            err_fom.percentile_75 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.75);
+            err_fom.percentile_90 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.90);
+            err_fom.percentile_95 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.95);
+            err_fom.percentile_99 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.99);
         end
     end
 end

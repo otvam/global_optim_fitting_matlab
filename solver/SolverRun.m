@@ -48,12 +48,14 @@ classdef SolverRun < handle
             % get variables scaling
             [n_var, x_scale, lb_scale, ub_scale] = self.obj_var.get_scale(n_pts, param, clamp_bnd);
             fct_unscale = @(x_scale) self.obj_var.get_unscale(x_scale, clamp_bnd);
+            fct_scale_err = @(err_mat, wgt_mat) self.obj_var.get_scale_err(err_mat, wgt_mat);
             
             % get the error function
-            fct_sol = @(x_scale) SolverRun.get_sol(x_scale, self.fct_err, fct_unscale, recover_val);
+            fct_sol = @(x_scale) SolverRun.get_sol(x_scale, self.fct_err, fct_unscale, fct_scale_err);
+            fct_recover = @(x_scale) SolverRun.get_sol_recover(x_scale, fct_sol, recover_val);
                         
             % data structure for the logging
-            data_optim.fct_err = self.fct_err;
+            data_optim.fct_sol = fct_sol;
             data_optim.fct_unscale = fct_unscale;
             data_optim.n_var = n_var;
             
@@ -61,7 +63,7 @@ classdef SolverRun < handle
             obj_log = SolverLog(solver_type, log_iter, log_final, data_optim, self.format);
             
             % call the solver
-            [x_scale, optim] = SolverRun.get_solver(fct_sol, x_scale, lb_scale, ub_scale, options, solver_type, obj_log);
+            [x_scale, optim] = SolverRun.get_solver(fct_recover, x_scale, lb_scale, ub_scale, options, solver_type, obj_log);
             
             % unscale
             [n_pts, param] = fct_unscale(x_scale);
@@ -70,7 +72,7 @@ classdef SolverRun < handle
     
     %% private static api
     methods (Static, Access = private)
-        function [x_scale, optim] = get_solver(fct_sol, x_scale, lb_scale, ub_scale, options, solver_type, obj_log)
+        function [x_scale, optim] = get_solver(fct_recover, x_scale, lb_scale, ub_scale, options, solver_type, obj_log)
             % Call a solver and manage the logging.
             
             % logging function to be called after each solver iteration
@@ -83,7 +85,7 @@ classdef SolverRun < handle
             x_scale = x_scale.';
             lb_scale = lb_scale.';
             ub_scale = ub_scale.';
-            x_scale = SolverList.get_solver(fct_sol, fct_iter, fct_final, x_scale, lb_scale, ub_scale, options, solver_type);
+            x_scale = SolverList.get_solver(fct_recover, fct_iter, fct_final, x_scale, lb_scale, ub_scale, options, solver_type);
             x_scale = x_scale.';
             
             % get the logging data
@@ -104,35 +106,38 @@ classdef SolverRun < handle
             
         end
         
-        function [err, err_mat, wgt_mat, err_wgt_vec] = get_sol(x_scale, fct_err, fct_unscale, recover_val)
+        function [err, err_mat, wgt_mat] = get_sol(x_scale, fct_err, fct_unscale, fct_scale_err)
             % Error function that will be called by the different solvers.
             
-            % reshape
-            x_scale = x_scale.';
             
+            % evaluate the function
             if isempty(x_scale)
                 err = [];
                 err_mat = [];
                 wgt_mat = [];
-                err_wgt_vec = [];
             else
                 [err_mat, wgt_mat] = SolverRun.get_cache(x_scale, fct_err, fct_unscale);
-                
-                            % get error metrics
-            err = SolverUtils.get_norm(err_mat, wgt_mat, 2);
-
-%                 [err, err_wgt_vec] = fct_error(err_mat, wgt_mat);
+                err = fct_scale_err(err_mat, wgt_mat);
             end
             
+            % reshape
+            err = err.';
+        end
+        
+        function err = get_sol_recover(x_scale, fct_sol, recover_val)
             
-            % replace bad values by the specified value
+            % reshape
+            x_scale = x_scale.';
+            
+            % get error
+            err = fct_sol(x_scale);
+            
+            % replace invalid values
             idx = isfinite(err)==false;
             err(idx) = recover_val;
+            
+            % reshape
             err = err.';
-
-            
-            
-            
         end
     end
 end

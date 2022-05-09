@@ -54,13 +54,24 @@ classdef SolverVar < handle
             end
         end
         
-        function get_scale_err(self, err)
+        function err = get_scale_err(self, err_mat, wgt_mat)
             
+            % extract
+            type = self.var_err.type;
+            arg = self.var_err.arg;
             
-            ub_trf = SolverUtils.get_var_trf(ub, trf, false);
+            % get error metrics
+            switch type
+                case 'error'
+                    err = SolverUtils.get_error(err_mat, wgt_mat, arg);
+                case 'norm'
+                    err = SolverUtils.get_norm(err_mat, wgt_mat, arg);
+                case 'percentile'
+                    err = SolverUtils.get_percentile(err_mat, wgt_mat, arg);
+                otherwise
+                    error('invalid data')
+            end
         end
-        
-        
         
         function [n_var, x_scale, lb_scale, ub_scale] = get_scale(self, n_pts, param, clamp_bnd)
             % Extract the raw matrix from the parameter structure.

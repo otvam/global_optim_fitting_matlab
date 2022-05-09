@@ -18,7 +18,7 @@ var_opt{end+1} = struct('name', 'var_scalar', 'x0', [0.5, 0.6], 'lb', 0.1, 'ub',
 var_opt{end+1} = struct('name', 'var_vector', 'x0', [1.5, 2.5], 'lb', 1.0, 'ub', 3.0, 'tol_bnd', 0.05, 'trf', 'lin', 'norm', true, 'idx', 1);
 var_opt{end+1} = struct('name', 'var_vector', 'x0', [1.5, 2.5], 'lb', 1.0, 'ub', 3.0, 'tol_bnd', 0.05, 'trf', 'lin', 'norm', true, 'idx', 2);
 
-var_err = struct('type', 'norm', 'order', 8, 'wgt_int', true);
+var_err = struct('type', 'norm', 'arg', 8);
 
 %% error function
 fct_err = @(param, n) get_fct_err(param, n, n_fit, val, wgt);
@@ -44,6 +44,7 @@ val_model_mat = get_model(cst_scalar, cst_vector, var_scalar, var_vector, false)
 val_mat = repmat(val, 1, n_pts);
 wgt_mat = repmat(wgt, 1, n_pts);
 err_mat = (val_model_mat-val_mat)./val_mat;
+err_mat = abs(err_mat);
 
 end
 
