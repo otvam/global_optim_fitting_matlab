@@ -51,15 +51,12 @@ function [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format,
 warning('off', 'optimlib:commonMsgs:NoPCTLicense');
 
 % object managing the variables (name, bounds, transformation, normalization, etc.)
-fprintf('get var\n')
 obj_var = SolverVar(var_opt, var_fix, var_err);
 
 % object interfacing the different solvers
-fprintf('get interface\n')
 obj_run = SolverRun(obj_var, fct_err, format, cache);
 
 % calling the different solvers (using the results as initial values)
-disp('run solvers')
 [n_pts, param] = obj_var.get_init();
 for i=1:length(optimizer)
     [n_pts, param, optim{i}] = obj_run.get_run(n_pts, param, optimizer{i});

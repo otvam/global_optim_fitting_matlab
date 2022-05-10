@@ -65,6 +65,9 @@ var_err = struct('type', 'norm', 'arg', 8);
 %    - many parameter combinations can be evaluated together
 fct_err = @(param, n_pts) get_fct_err(param, n_pts);
 
+% number of indent characters for the log display
+format.indent = 0;
+
 % formatting instruction for displaying the error metric
 %    - spec (str): fprintf format specification
 %    - scale (str): scaling factor
