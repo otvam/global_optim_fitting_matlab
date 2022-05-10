@@ -62,7 +62,9 @@ fct_err = @(param, n_pts) get_fct_err(param, n_pts);
 %    - spec (str): fprintf format specification
 %    - scale (str): scaling factor
 %    - unit (str): unit of the variable
-format.err = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
+%    - xscale (str): x-scaling of the convergence plot ('lin' or 'log')
+%    - yscale (str): x-scaling of the convergence plot ('lin' or 'log')
+format.err = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.', 'xscale', 'lin', 'yscale', 'log');
 
 % formatting instruction for displaying the variables (variables can be omitted)
 %    - spec (str): fprintf format specification

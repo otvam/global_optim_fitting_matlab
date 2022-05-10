@@ -156,10 +156,10 @@ end
 optimizer.solver_type = solver_type;
 
 % log the solver progress after each iteration
-optimizer.log_iter = true;
+optimizer.log.iter = struct('log', true, 'display', true, 'plot', true);
 
 % log the solver results after the final iteration
-optimizer.log_final = true;
+optimizer.log.final = struct('log', true, 'display', true, 'plot', true);
 
 % handling of variable bounds
 %    - if false, the solver is handling the constraints

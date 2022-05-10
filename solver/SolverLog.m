@@ -10,8 +10,8 @@ classdef SolverLog < handle
     %% properties
     properties (SetAccess = private, GetAccess = private)
         solver_type % name of the used solver
-        log_iter % log (or not) the solver iterations
-        log_final % log (or not) the solver final results
+        iter % log (or not) the solver iterations
+        final % log (or not) the solver final results
         fct_unscale % function the extract the parameter structure from a raw matrix
         fct_sol % function returning the error metrics
         format % structure with formatting instructions (name and unit)
@@ -19,17 +19,19 @@ classdef SolverLog < handle
         t_start % timestamp set at the initialization
         t_last % timestamp of the last iteration
         optim % cell containing the logged data
+        handle_single % figure containing the info on a iteration
+        handle_all % figure containing the info on all iterations
     end
     
     %% public
     methods (Access = public)
-        function self = SolverLog(solver_type, log_iter, log_final, fct_unscale, fct_sol, format)
+        function self = SolverLog(solver_type, log, fct_unscale, fct_sol, format)
             % Constructor.
             
             % set data
             self.solver_type = solver_type;
-            self.log_iter = log_iter;
-            self.log_final = log_final;
+            self.iter = log.iter;
+            self.final = log.final;
             self.fct_unscale = fct_unscale;
             self.fct_sol = fct_sol;
             self.format = format;
@@ -38,54 +40,71 @@ classdef SolverLog < handle
             self.t_start = datetime('now');
             self.t_last = datetime('now');
             self.optim = {};
+            
+            % get figure handles
+            if (self.iter.plot==true)||(self.final.plot==true)
+                self.handle_single = SolverLog.get_figure([self.solver_type ' / single'], 2);
+                self.handle_all = SolverLog.get_figure([self.solver_type ' / all'], 1);
+            else
+                self.handle_single = [];
+                self.handle_all = [];
+            end
         end
         
         function get_iter(self, x_scale, err, n_iter, n_eval, msg, is_valid)
             % Log and display the solver progress after an iteration.
             
-            % get if logging is required
-            if self.log_iter==false
-                return
+            if self.iter.log==true
+                
+                % get the total solver timing
+                [t_solver, t_iter] = get_time(self, n_iter, false);
+                
+                % get message
+                msg = sprintf('intermediate results\nstate: %s', msg);
+                
+                % get and add the logging data
+                optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
+                self.optim{end+1} = optim_tmp;
+                
+                % display the data
+                name = sprintf('iter / %s / n = %d', self.solver_type, n_iter);
+                
+                if self.iter.display==true
+                    SolverLog.get_disp(name, self.optim{end}, self.format)
+                end
+                if self.iter.plot==true
+                    SolverLog.get_plot_single(self.handle_single, name, self.optim{end}, self.format)
+                    SolverLog.get_plot_all(self.handle_all, name, self.optim, self.format)
+                    drawnow();
+                end
             end
-            
-            % get the total solver timing
-             [t_solver, t_iter] = get_time(self, n_iter, false);
-                         
-            % get message
-            msg = sprintf('intermediate results\nstate: %s', msg);
-            
-            % get and add the logging data
-            optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
-            self.optim{end+1} = optim_tmp;
-            
-            % display the data
-            name = sprintf('iter / %s / n = %d / %d', self.solver_type, n_iter, n_eval);
-            SolverLog.get_disp(name, self.optim{end}, self.format)
         end
         
         function get_final(self, x_scale, err, n_iter, n_eval, msg, is_valid)
             % Log, display, and plot the solver results after the final iteration.
             
-            % get if logging is required
-            if self.log_final==false
-                return
+            if self.final.log==true
+                % get the total solver timing
+                [t_solver, t_iter] = get_time(self, n_iter, true);
+                
+                % get message
+                msg = sprintf('final results\n%s', msg);
+                
+                % get and add the logging data
+                optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
+                self.optim{end+1} = optim_tmp;
+                
+                % display and plot the data
+                name = sprintf('final / %s / n = %d', self.solver_type, n_iter);
+                if self.final.display==true
+                    SolverLog.get_disp(name, self.optim{end}, self.format)
+                end
+                if self.final.plot==true
+                    SolverLog.get_plot_single(self.handle_single, name, self.optim{end}, self.format)
+                    SolverLog.get_plot_all(self.handle_all, name, self.optim, self.format)
+                    drawnow();
+                end
             end
-            
-            % get the total solver timing
-             [t_solver, t_iter] = get_time(self, n_iter, true);
-            
-            % get message
-            msg = sprintf('final results\n%s', msg);
-            
-            % get and add the logging data
-            optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
-            self.optim{end+1} = optim_tmp;
-            
-            % display and plot the data
-            name = sprintf('final / %s', self.solver_type);
-            SolverLog.get_disp(name, self.optim{end}, self.format)
-            SolverLog.get_plot_single(name, self.optim{end}, self.format)
-            SolverLog.get_plot_all(name, self.optim, self.format)
         end
         
         function optim = get_optim(self)
@@ -178,7 +197,7 @@ classdef SolverLog < handle
             end
         end
         
-        function get_plot_single(name, optim, format)
+        function get_plot_single(handle, name, optim, format)
             % Plot the logged data for a specific iteration.
             
             if optim.has_solution==true
@@ -193,38 +212,36 @@ classdef SolverLog < handle
                 
                 % plot the error distribution (if it exists)
                 if n_set>1
-                    figure('name', [name ' / single'])
-                    
+                    if isempty(handle)
+                        handle = SolverLog.get_figure(name, 2);
+                    end
+                    set(handle.fig, 'Visible', 'on')
+
                     % histogram
-                    subplot(1,2,1)
-                    histogram(scale.*err_vec, 'Normalization', 'pdf')
-                    grid('on')
-                    xlabel(['err (' unit ')'], 'interpreter', 'none')
-                    ylabel('p (#)', 'interpreter', 'none')
-                    title(sprintf('Histogram / %s', name), 'interpreter', 'none')
+                    histogram(handle.ax(1), scale.*err_vec, 'Normalization', 'pdf')
+                    grid(handle.ax(1), 'on')
+                    xlabel(handle.ax(1), ['errors (' unit ')'], 'interpreter', 'none')
+                    ylabel(handle.ax(1), 'probability (#)', 'interpreter', 'none')
+                    title(handle.ax(1), sprintf('Histogram / %s', name), 'interpreter', 'none')
                     
                     % scatter plot with error and weights
-                    subplot(1,2,2)
-                    pts_vec = 1:n_set;
-                    [err_vec, idx] = sort(err_vec);
-                    wgt_vec = wgt_vec(idx);
-                    scatter(pts_vec, scale.*err_vec, 50, wgt_vec, 'filled')
-                    colorbar();
-                    xlim([min(pts_vec) max(pts_vec)])
-                    grid('on')
-                    xlabel('idx (#)', 'interpreter', 'none')
-                    ylabel(['err (' unit ')'], 'interpreter', 'none')
-                    title(sprintf('Weight / %s', name), 'interpreter', 'none')
+                    scatter(handle.ax(2), scale.*err_vec, wgt_vec, 50, 'b', 'filled')
+                    grid(handle.ax(2), 'on')
+                    xlabel(handle.ax(2), ['errors (' unit ')'], 'interpreter', 'none')
+                    ylabel(handle.ax(2), 'weights (#)', 'interpreter', 'none')
+                    title(handle.ax(2), sprintf('Weights / %s', name), 'interpreter', 'none')
                 end
             end
         end
         
-        function get_plot_all(name, optim, format)
+        function get_plot_all(handle, name, optim, format)
             % Plot the logged data across all iterations.
             
             % extract format
             scale = format.err.scale;
             unit = format.err.unit;
+            xscale = format.err.xscale;
+            yscale = format.err.yscale;
             
             % extract the data for all iterations (error metric and timing)
             conv_vec = 1:length(optim);
@@ -237,25 +254,20 @@ classdef SolverLog < handle
             end
             
             % plot all iterations
-            figure('name', [name ' / all'])
+            if isempty(handle)
+                handle = SolverLog.get_figure(name, 1);
+            end
+            set(handle.fig, 'Visible', 'on')
             
             % plot the error metric
-            subplot(1,2,1)
-            plot(conv_vec, scale.*err_conv_vec, 'og')
-            xlim([min(conv_vec) max(conv_vec)])
-            grid('on')
-            xlabel('iter (#)', 'interpreter', 'none')
-            ylabel(['err (' unit ')'], 'interpreter', 'none')
-            title(sprintf('Convergence / %s', name), 'interpreter', 'none')
-            
-            % plot the solver timing data
-            subplot(1,2,2)
-            plot(conv_vec, seconds(t_solver_conv_vec), 'ob')
-            xlim([min(conv_vec) max(conv_vec)])
-            grid('on')
-            xlabel('iter (#)', 'interpreter', 'none')
-            ylabel('t (s)', 'interpreter', 'none')
-            title(sprintf('Time / %s', name), 'interpreter', 'none')
+            plot(handle.ax(1), conv_vec, scale.*err_conv_vec, 'og')
+            xlim(handle.ax(1), [min(conv_vec)-1 max(conv_vec)+1])
+            grid(handle.ax(1), 'on')
+            set(handle.ax(1), 'xscale', xscale)
+            set(handle.ax(1), 'yscale', yscale)
+            xlabel(handle.ax(1), 'iter (#)', 'interpreter', 'none')
+            ylabel(handle.ax(1), ['err (' unit ')'], 'interpreter', 'none')
+            title(handle.ax(1), sprintf('Convergence / %s', name), 'interpreter', 'none')
         end
     end
     
@@ -374,7 +386,7 @@ classdef SolverLog < handle
         
         function sol_fom = get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter)
             % Process the solver data and assign the results to a struct.
-
+            
             % check population
             pop_valid = isfinite(err);
             n_pop_all = length(pop_valid);
@@ -429,6 +441,18 @@ classdef SolverLog < handle
             err_fom.err_best = err_best;
             err_fom.err_vec = err_vec;
             err_fom.wgt_vec = wgt_vec;
+        end
+        
+        function handle = get_figure(name, n)
+            % Create a figure and return axes handles.
+
+            fig = figure('name', name, 'Visible', 'off');
+            for i=1:n
+                ax(i) = subplot(1, n, i);
+            end
+
+            handle.fig = fig;
+            handle.ax = ax;
         end
     end
 end

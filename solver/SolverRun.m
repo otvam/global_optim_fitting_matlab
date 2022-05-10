@@ -34,12 +34,11 @@ classdef SolverRun < handle
             
             % extract
             solver_type = optimizer.solver_type;
-            log_iter = optimizer.log_iter;
-            log_final = optimizer.log_final;
             clamp_bnd = optimizer.clamp_bnd;
             recover_val = optimizer.recover_val;
             options = optimizer.options;
-            
+            log = optimizer.log;
+
             % get variables scaling
             [x_scale, lb_scale, ub_scale] = self.obj_var.get_scale(n_pts, param, clamp_bnd);
             fct_unscale = @(x_scale) self.obj_var.get_unscale(x_scale, clamp_bnd);
@@ -57,7 +56,7 @@ classdef SolverRun < handle
             fct_recover = @(x_scale) SolverRun.get_sol_recover(x_scale, fct_sol, recover_val);
             
             % create the logging object
-            obj_log = SolverLog(solver_type, log_iter, log_final, fct_unscale, fct_sol, self.format);
+            obj_log = SolverLog(solver_type, log, fct_unscale, fct_sol, self.format);
             
             % call the solver
             [x_scale, optim] = SolverRun.get_solver(fct_recover, x_scale, lb_scale, ub_scale, options, solver_type, obj_log);

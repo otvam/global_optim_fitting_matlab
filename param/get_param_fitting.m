@@ -65,11 +65,18 @@ var_err = struct('type', 'norm', 'arg', 8);
 %    - many parameter combinations can be evaluated together
 fct_err = @(param, n_pts) get_fct_err(param, n_pts);
 
+% formatting instruction for displaying the error metric
+%    - spec (str): fprintf format specification
+%    - scale (str): scaling factor
+%    - unit (str): unit of the variable
+%    - xscale (str): x-scaling of the convergence plot ('lin' or 'log')
+%    - yscale (str): x-scaling of the convergence plot ('lin' or 'log')
+format.err = struct('spec', '%.3f', 'scale', 1e2, 'unit', '%', 'xscale', 'lin', 'yscale', 'log');
+
 % formatting instruction for displaying the variables (variables can be omitted)
 %    - spec (str): fprintf format specification
 %    - scale (str): scaling factor
 %    - unit (str): unit of the variable
-format.err = struct('spec', '%.3f', 'scale', 1e2, 'unit', '%');
 format.param.n_set = struct('spec', '%d', 'scale', 1e0, 'unit', '#');
 format.param.k = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 format.param.dx = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
@@ -142,12 +149,11 @@ x_vec = logspace(log10(1e3), log10(100e3), 25);
 y_vec = logspace(log10(1e-2), log10(1e0), 25);
 [x_mat, y_mat] = ndgrid(x_vec, y_vec);
 
-% get the weigts, double the weight for the edges
-wgt_mat = ones(length(x_vec), length(y_vec));
-wgt_mat(1,:) = 2;
-wgt_mat(end,:) = 2;
-wgt_mat(:,1) = 2;
-wgt_mat(:,end) = 2;
+% get the weigts, increased weight for the edges
+wgt_mat = NaN(length(x_vec), length(y_vec));
+for i=0:8
+    wgt_mat((1+i):(end-i), (1+i):(end-i)) = 9-i;
+end
 
 % flatten the dataset
 x = x_mat(:);
