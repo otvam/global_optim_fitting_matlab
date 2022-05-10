@@ -13,6 +13,7 @@ classdef SolverCache < handle
         fct_err % error function to be cached
         use_cache % use (or not) the cache for the function
         vec_cache % allow (or not) vectorized call to the function
+        parfor_cache % use (or not) parfor for evaluating many combinations in a for-loop
         n_cache % maximum number of elements in the cache
         tol_cache % tolerance for determining unicity
         
@@ -31,6 +32,7 @@ classdef SolverCache < handle
             self.fct_err = fct_err;
             self.use_cache = cache.use_cache;
             self.vec_cache = cache.vec_cache;
+            self.parfor_cache = cache.parfor_cache;
             self.n_cache = cache.n_cache;
             self.tol_cache = cache.tol_cache;
             
@@ -66,8 +68,15 @@ classdef SolverCache < handle
             if self.vec_cache
                 [err_mat, wgt_mat] = self.fct_err(x_mat);
             else
-                for i=1:size(x_mat, 2)
-                    [err_mat(:,i), wgt_mat(:,i)] = self.fct_err(x_mat(:,i));
+                fct_err_tmp = self.fct_err;
+                if self.parfor_cache
+                    parfor i=1:size(x_mat, 2)
+                        [err_mat(:,i), wgt_mat(:,i)] = fct_err_tmp(x_mat(:,i));
+                    end
+                else
+                    for i=1:size(x_mat, 2)
+                        [err_mat(:,i), wgt_mat(:,i)] = fct_err_tmp(x_mat(:,i));
+                    end
                 end
             end
         end
