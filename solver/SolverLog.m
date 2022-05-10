@@ -119,79 +119,83 @@ classdef SolverLog < handle
         function get_disp(name, optim, format)
             % Display the logged data for a specific iteration.
             
-            % name of the iteration
-            fprintf('%s\n', name)
+            % extract
             err = format.err;
             param = format.param;
+            indent = format.indent;
+
+            % name of the iteration
+            pad = repmat(' ', 1, indent);
+            SolverLog.get_print(pad, '%s', name)
             
             % display the solver figures of merit
-            fprintf('    fom\n')
-            fprintf('        msg\n')
+            SolverLog.get_print(pad, '    fom')
+            SolverLog.get_print(pad, '        msg')
             for i=1:length(optim.sol_fom.msg)
-                fprintf('            %s\n', optim.sol_fom.msg{i})
+                SolverLog.get_print(pad, '            %s', optim.sol_fom.msg{i})
             end
-            fprintf('        status\n')
-            fprintf('            is_valid = %s\n',  mat2str(optim.sol_fom.is_valid))
-            fprintf('            is_bound = %s\n',  mat2str(optim.sol_fom.is_bound))
-            fprintf('        count\n')
-            fprintf('            n_iter = %d\n', optim.sol_fom.n_iter)
-            fprintf('            n_eval = %d\n', optim.sol_fom.n_eval)
-            fprintf('        timing\n')
-            fprintf('            t_solver = %s\n', char(optim.sol_fom.t_solver))
-            fprintf('            t_iter = %s\n', char(optim.sol_fom.t_iter))
-            fprintf('        error\n')
-            fprintf('            n_pop_all = %d\n', optim.sol_fom.n_pop_all)
-            fprintf('            n_pop_fail = %d\n', optim.sol_fom.n_pop_fail)
-            fprintf('            err_best = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
+            SolverLog.get_print(pad, '        status')
+            SolverLog.get_print(pad, '            is_valid = %s',  mat2str(optim.sol_fom.is_valid))
+            SolverLog.get_print(pad, '            is_bound = %s',  mat2str(optim.sol_fom.is_bound))
+            SolverLog.get_print(pad, '        count')
+            SolverLog.get_print(pad, '            n_iter = %d', optim.sol_fom.n_iter)
+            SolverLog.get_print(pad, '            n_eval = %d', optim.sol_fom.n_eval)
+            SolverLog.get_print(pad, '        timing')
+            SolverLog.get_print(pad, '            t_solver = %s', char(optim.sol_fom.t_solver))
+            SolverLog.get_print(pad, '            t_iter = %s', char(optim.sol_fom.t_iter))
+            SolverLog.get_print(pad, '        error')
+            SolverLog.get_print(pad, '            n_pop_all = %d', optim.sol_fom.n_pop_all)
+            SolverLog.get_print(pad, '            n_pop_fail = %d', optim.sol_fom.n_pop_fail)
+            SolverLog.get_print(pad, '            err_best = %s', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
             
             if optim.has_solution==true
                 % display the error metrics
-                fprintf('    err_fom\n')
-                fprintf('        size\n')
-                fprintf('            n_set = %d\n', optim.err_fom.n_set)
-                fprintf('            err_best = %s\n', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
-                fprintf('        weight\n')
-                fprintf('            wgt_sum = %.3f\n', optim.err_fom.wgt_sum)
-                fprintf('            wgt_avg = %.3f\n', optim.err_fom.wgt_avg)
+                SolverLog.get_print(pad, '    err_fom')
+                SolverLog.get_print(pad, '        size')
+                SolverLog.get_print(pad, '            n_set = %d', optim.err_fom.n_set)
+                SolverLog.get_print(pad, '            err_best = %s', SolverLog.get_format_scalar(optim.sol_fom.err_best, err))
+                SolverLog.get_print(pad, '        weight')
+                SolverLog.get_print(pad, '            wgt_sum = %.3f', optim.err_fom.wgt_sum)
+                SolverLog.get_print(pad, '            wgt_avg = %.3f', optim.err_fom.wgt_avg)
                 if optim.err_fom.n_set>1
-                    fprintf('        avg\n')
-                    fprintf('            avg = %s\n', SolverLog.get_format_scalar(optim.err_fom.avg, err))
-                    fprintf('            min = %s\n', SolverLog.get_format_scalar(optim.err_fom.min, err))
-                    fprintf('            max = %s\n', SolverLog.get_format_scalar(optim.err_fom.max, err))
-                    fprintf('        norm\n')
+                    SolverLog.get_print(pad, '        avg')
+                    SolverLog.get_print(pad, '            avg = %s', SolverLog.get_format_scalar(optim.err_fom.avg, err))
+                    SolverLog.get_print(pad, '            min = %s', SolverLog.get_format_scalar(optim.err_fom.min, err))
+                    SolverLog.get_print(pad, '            max = %s', SolverLog.get_format_scalar(optim.err_fom.max, err))
+                    SolverLog.get_print(pad, '        norm')
                     for i=1:length(optim.err_fom.norm_val)
                         str_val = sprintf('%d', optim.err_fom.norm_val(i));
                         str_err = SolverLog.get_format_scalar(optim.err_fom.norm_err(i), err);
-                        fprintf('            norm / %s = %s\n', str_val, str_err)
+                        SolverLog.get_print(pad, '            norm / %s = %s', str_val, str_err)
                     end
-                    fprintf('        percentile\n')
+                    SolverLog.get_print(pad, '        percentile')
                     for i=1:length(optim.err_fom.percentile_val)
                         str_val = sprintf('%.1f %%', 1e2.*optim.err_fom.percentile_val(i));
                         str_err = SolverLog.get_format_scalar(optim.err_fom.percentile_err(i), err);
-                        fprintf('            percentile / %s = %s\n', str_val, str_err)
+                        SolverLog.get_print(pad, '            percentile / %s = %s', str_val, str_err)
                     end
                 end
                 
                 % display the current best parameter combinations
-                fprintf('    param\n')
+                SolverLog.get_print(pad, '    param')
                 field = fieldnames(optim.param);
                 for i=1:length(field)
                     value = optim.param.(field{i});
                     if isfield(param, field{i})
                         str = SolverLog.get_format_vec(value, param.(field{i}));
-                        fprintf('        param.%s = %s\n', field{i}, str)
+                        SolverLog.get_print(pad, '        param.%s = %s', field{i}, str)
                     else
-                        fprintf('        param.%s = hidden\n', field{i})
+                        SolverLog.get_print(pad, '        param.%s = hidden', field{i})
                     end
                 end
                 
                 % display if the parameters are close to the bounds
-                fprintf('    bnd\n')
+                SolverLog.get_print(pad, '    bnd')
                 field = fieldnames(optim.bnd);
                 for i=1:length(field)
                     value = optim.bnd.(field{i});
                     str = SolverLog.get_format_bnd(value);
-                    fprintf('        bnd.%s = %s\n', field{i}, str)
+                    SolverLog.get_print(pad, '        bnd.%s = %s', field{i}, str)
                 end
             end
         end
@@ -392,7 +396,9 @@ classdef SolverLog < handle
             n_pop_fail = nnz(pop_valid==false);
             
             % parse the solver message
-            msg = splitlines(strtrim(msg));
+            msg = strtrim(msg);
+            msg = splitlines(msg);
+            msg = strtrim(msg);
             
             % get the solver figures of merit
             sol_fom.msg = msg;
@@ -452,6 +458,12 @@ classdef SolverLog < handle
 
             handle.fig = fig;
             handle.ax = ax;
+        end
+        
+        function get_print(pad, name, varargin)
+            % Print a line with padding.
+
+            fprintf([pad, name '\n'], varargin{:})
         end
     end
 end
