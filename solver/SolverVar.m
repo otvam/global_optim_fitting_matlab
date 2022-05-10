@@ -50,7 +50,7 @@ classdef SolverVar < handle
                 name = self.var_fix{i}.name;
                 
                 assert(size(x0, 2)==1, 'invalid data')
-                param.(name) = repmat(x0, 1, n_pts);
+                param.(name) = x0;
             end
         end
         
@@ -178,11 +178,7 @@ classdef SolverVar < handle
                 name = self.var_fix{i}.name;
                 
                 assert(size(x0, 2)==1, 'invalid data')
-                x0_tmp = repmat(x0, 1, n_pts);
-                is_bound_tmp = true(size(x0_tmp));
-
-                param.(name) = x0_tmp;
-                bnd.(name) = is_bound_tmp;
+                param.(name) = x0;
             end
         end
         

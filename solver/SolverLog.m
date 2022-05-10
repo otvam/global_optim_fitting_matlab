@@ -140,20 +140,17 @@ classdef SolverLog < handle
                     fprintf('                min = %s\n', SolverLog.get_format_scalar(optim.err_fom.min, err))
                     fprintf('                max = %s\n', SolverLog.get_format_scalar(optim.err_fom.max, err))
                     fprintf('            norm\n')
-                    fprintf('                norm_n_1 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_1, err))
-                    fprintf('                norm_n_2 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_2, err))
-                    fprintf('                norm_n_4 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_4, err))
-                    fprintf('                norm_n_6 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_6, err))
-                    fprintf('                norm_n_8 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_8, err))
-                    fprintf('                norm_n_10 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_10, err))
-                    fprintf('                norm_n_12 = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_n_12, err))
-                    fprintf('                norm_inf = %s\n', SolverLog.get_format_scalar(optim.err_fom.norm_inf, err))
+                    for i=1:length(optim.err_fom.norm_val)
+                        str_val = sprintf('%d', optim.err_fom.norm_val(i));
+                        str_err = SolverLog.get_format_scalar(optim.err_fom.norm_err(i), err);
+                        fprintf('                norm / %s = %s\n', str_val, str_err)
+                    end
                     fprintf('            percentile\n')
-                    fprintf('                percentile_50 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_50, err))
-                    fprintf('                percentile_75 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_75, err))
-                    fprintf('                percentile_90 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_90, err))
-                    fprintf('                percentile_95 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_95, err))
-                    fprintf('                percentile_99 = %s\n', SolverLog.get_format_scalar(optim.err_fom.percentile_99, err))
+                    for i=1:length(optim.err_fom.percentile_val)
+                        str_val = sprintf('%.1f %%', 1e2.*optim.err_fom.percentile_val(i));
+                        str_err = SolverLog.get_format_scalar(optim.err_fom.percentile_err(i), err);
+                        fprintf('                percentile / %s = %s\n', str_val, str_err)
+                    end
                 end
                 
                 % display the current best parameter combinations
@@ -161,8 +158,13 @@ classdef SolverLog < handle
                 field = fieldnames(optim.param);
                 for i=1:length(field)
                     value = optim.param.(field{i});
-                    param_tmp = param.(field{i});
-                    fprintf('            param.%s = %s\n', field{i}, SolverLog.get_format_vec(value, param_tmp))
+                    
+                    if isfield(param, field{i})
+                        str = SolverLog.get_format_vec(value, param.(field{i}));
+                        fprintf('            param.%s = %s\n', field{i}, str)
+                    else
+                        fprintf('            param.%s = hidden\n', field{i})
+                    end
                 end
                 
                 % display if the parameters are close to the bounds
@@ -170,7 +172,8 @@ classdef SolverLog < handle
                 field = fieldnames(optim.bnd);
                 for i=1:length(field)
                     value = optim.bnd.(field{i});
-                    fprintf('            bnd.%s = %s\n', field{i}, SolverLog.get_format_bnd(value))
+                    str = SolverLog.get_format_bnd(value);
+                    fprintf('            bnd.%s = %s\n', field{i}, str)
                 end
             end
         end
@@ -207,8 +210,6 @@ classdef SolverLog < handle
                     wgt_vec = wgt_vec(idx);
                     scatter(pts_vec, scale.*err_vec, 50, wgt_vec, 'filled')
                     colorbar();
-                    set(gca, 'xscale','lin')
-                    set(gca, 'yscale','log')
                     xlim([min(pts_vec) max(pts_vec)])
                     grid('on')
                     xlabel('idx (#)', 'interpreter', 'none')
@@ -241,8 +242,6 @@ classdef SolverLog < handle
             % plot the error metric
             subplot(1,2,1)
             plot(conv_vec, scale.*err_conv_vec, 'og')
-            set(gca, 'xscale','lin')
-            set(gca, 'yscale','log')
             xlim([min(conv_vec) max(conv_vec)])
             grid('on')
             xlabel('iter (#)', 'interpreter', 'none')
@@ -406,25 +405,24 @@ classdef SolverLog < handle
             err_fom.wgt_avg = sum(wgt_vec)./length(wgt_vec);
             
             if err_fom.n_set>1
+                % get error with simple metrics
                 err_fom.avg = SolverUtils.get_error(err_vec, wgt_vec, 'avg');
                 err_fom.min = SolverUtils.get_error(err_vec, wgt_vec, 'min');
                 err_fom.max = SolverUtils.get_error(err_vec, wgt_vec, 'max');
                 
-                err_fom.norm_n_1 = SolverUtils.get_norm(err_vec, wgt_vec, 1);
-                err_fom.norm_n_2 = SolverUtils.get_norm(err_vec, wgt_vec, 2);
-                err_fom.norm_n_4 = SolverUtils.get_norm(err_vec, wgt_vec, 4);
-                err_fom.norm_n_6 = SolverUtils.get_norm(err_vec, wgt_vec, 6);
-                err_fom.norm_n_8 = SolverUtils.get_norm(err_vec, wgt_vec, 8);
-                err_fom.norm_n_10 = SolverUtils.get_norm(err_vec, wgt_vec, 10);
-                err_fom.norm_n_12 = SolverUtils.get_norm(err_vec, wgt_vec, 12);
-                err_fom.norm_inf = SolverUtils.get_norm(err_vec, wgt_vec, Inf);
+                % get error for different norm
+                norm = [1 2 4 6 8 10 12 Inf];
+                for i=1:length(norm)
+                    err_fom.norm_err(i) = SolverUtils.get_norm(err_vec, wgt_vec, norm(i));
+                    err_fom.norm_val(i) = norm(i);
+                end
                 
                 % get error for different percentiles
-                err_fom.percentile_50 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.50);
-                err_fom.percentile_75 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.75);
-                err_fom.percentile_90 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.90);
-                err_fom.percentile_95 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.95);
-                err_fom.percentile_99 = SolverUtils.get_percentile(err_vec, wgt_vec, 0.99);
+                percentile = [0.01 0.05 0.1 0.5 0.9 0.95 0.99];
+                for i=1:length(percentile)
+                    err_fom.percentile_err(i) = SolverUtils.get_percentile(err_vec, wgt_vec, percentile(i));
+                    err_fom.percentile_val(i) = percentile(i);
+                end
             end
             
             % assign raw data

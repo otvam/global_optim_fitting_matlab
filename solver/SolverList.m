@@ -287,7 +287,7 @@ classdef SolverList < handle
             
             % evaluate the error function
             err_tmp = fct_sol(x_tmp);
-            
+                        
             % select only points that are valid a below the threshold
             idx = isfinite(err_tmp)&(err_tmp<err_lim);
             x = [x ; x_tmp(idx,:)];
