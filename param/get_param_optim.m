@@ -64,7 +64,7 @@ fct_err = @(param, n_pts) get_fct_err(param, n_pts);
 %    - unit (str): unit of the variable
 format.err = struct('spec', '%.3g', 'scale', 1e0, 'unit', 'a.u.');
 
-% formatting instruction for displaying the variables
+% formatting instruction for displaying the variables (variables can be omitted)
 %    - spec (str): fprintf format specification
 %    - scale (str): scaling factor
 %    - unit (str): unit of the variable
@@ -88,8 +88,9 @@ function [n_set, err_mat, wgt_mat] = get_fct_err(param, n_pts)
 %        - err_mat: error matrix (size: n_set x n_pts) 
 %        - wgt_mat: weight matrix (size: n_set x n_pts)
 %
-%    In this particular exemple, a scalar error is used (n_set = 1).
-%    This example is using the error function as a objective function.
+%    This example is using the error function as a objective function:
+%        - the error function return a scalar value (n_set = 1)
+%        - the error function will be minized by the solver
 %
 %    Parameters:
 %        param (struct): parameters combination to be evaluated
@@ -100,12 +101,13 @@ function [n_set, err_mat, wgt_mat] = get_fct_err(param, n_pts)
 %        err_mat (matrix): error matrix
 %        wgt_mat (matrix): weight matrix
 
+% extract the constant
+log_opt = param.log_opt;
+lin_opt = param.lin_opt;
 
 % extract the variables
-lin_opt = param.lin_opt;
-lin_var = param.lin_var;
-log_opt = param.log_opt;
 log_var = param.log_var;
+lin_var = param.lin_var;
 
 % get the error for the log variable (dummy function)
 err_log_mat = (log10(log_var)-log10(log_opt)).^2;
