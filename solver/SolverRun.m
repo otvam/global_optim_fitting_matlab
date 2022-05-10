@@ -100,20 +100,25 @@ classdef SolverRun < handle
             [n_pts, param] = fct_unscale(x_scale);
             
             % call the error function
-            [err_mat, wgt_mat] = fct_err(param, n_pts);
+            [n_set, err_mat, wgt_mat] = fct_err(param, n_pts);
+            
+            % check
+            assert(size(err_mat, 1)==n_set, 'invalid data')
+            assert(size(err_mat, 2)==n_pts, 'invalid data')
+            assert(size(wgt_mat, 1)==n_set, 'invalid data')
+            assert(size(wgt_mat, 2)==n_pts, 'invalid data')
         end
         
-        function [err_best, n_set, err_mat, wgt_mat] = get_sol(x_scale, fct_cache, fct_scale_err)
+        function [err_best, err_mat, wgt_mat] = get_sol(x_scale, fct_cache, fct_scale_err)
             % Function computing the error metric for given parameters.
             
             if isempty(x_scale)
                 err_best = [];
-                n_set = [];
                 err_mat = [];
                 wgt_mat = [];
             else
                 [err_mat, wgt_mat] = fct_cache(x_scale);
-                [err_best, n_set] = fct_scale_err(err_mat, wgt_mat);
+                err_best = fct_scale_err(err_mat, wgt_mat);
             end
         end
         

@@ -292,7 +292,7 @@ classdef SolverList < handle
             idx = isfinite(err_tmp)&(err_tmp<err_lim);
             x = [x ; x_tmp(idx,:)];
             err = [err ; err_tmp(idx,:)];
-            
+                        
             % call the display and logging function
             msg = 'iter';
             is_valid = isempty(x)==false;

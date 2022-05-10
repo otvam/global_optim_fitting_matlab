@@ -93,7 +93,7 @@ classdef SolverVar < handle
                 x_trf_tmp = SolverUtils.get_var_trf(x_tmp, trf, false);
                 x_norm_tmp = SolverUtils.get_var_norm(x_trf_tmp, lb_trf, ub_trf, norm, false);
                 [x_umclamp_tmp, lb_unclamp_tmp, ub_unclamp_tmp] = SolverUtils.get_var_unclamp(x_norm_tmp, lb_norm, ub_norm, clamp_bnd);
-                                
+                      
                 % assign
                 x_scale = [x_scale ; x_umclamp_tmp];
                 lb_scale = [lb_scale ; repmat(lb_unclamp_tmp, n_size, 1)];
@@ -157,7 +157,13 @@ classdef SolverVar < handle
                 tol = tol_bnd.*(ub_norm-lb_norm);
                 lb_norm_tol = lb_norm+tol;
                 ub_norm_tol = ub_norm-tol;
-                is_bound_tmp = is_bound&(x_norm_tmp>lb_norm_tol)&(x_norm_tmp<ub_norm_tol);
+                if isfinite(tol)
+                    is_bound_tmp = (x_norm_tmp>lb_norm_tol)&(x_norm_tmp<ub_norm_tol);
+                else
+                    is_bound_tmp = (x_norm_tmp>lb_norm)&(x_norm_tmp<ub_norm);
+                end
+                
+                % check if the bounds are globally respected
                 is_bound = is_bound&all(is_bound_tmp, 1);
                                 
                 % assign
@@ -180,7 +186,7 @@ classdef SolverVar < handle
             end
         end
         
-        function [err_best, n_set] = get_scale_err(self, err_mat, wgt_mat)
+        function err_best = get_scale_err(self, err_mat, wgt_mat)
             % Compute the error metric from the output of the error function.
             %    - from the error matrix and the associated weights
             %    - using the specific method
@@ -188,11 +194,7 @@ classdef SolverVar < handle
             % extract
             type = self.var_err.type;
             arg = self.var_err.arg;
-            
-            % check
-            assert(all(size(err_mat)==size(wgt_mat)), 'invalid data')
-            n_set = (size(err_mat, 1)+size(wgt_mat, 1))./2;
-            
+                        
             % get the specified error metric
             switch type
                 case 'error'

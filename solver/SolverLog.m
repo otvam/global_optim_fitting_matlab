@@ -202,10 +202,14 @@ classdef SolverLog < handle
                     
                     % scatter plot with error and weights
                     subplot(1,2,2)
+                    pts_vec = 1:n_set;
                     [err_vec, idx] = sort(err_vec);
                     wgt_vec = wgt_vec(idx);
-                    scatter(1:n_set, scale.*err_vec, 50, wgt_vec, 'filled')
+                    scatter(pts_vec, scale.*err_vec, 50, wgt_vec, 'filled')
                     colorbar();
+                    set(gca, 'xscale','lin')
+                    set(gca, 'yscale','log')
+                    xlim([min(pts_vec) max(pts_vec)])
                     grid('on')
                     xlabel('idx (#)', 'interpreter', 'none')
                     ylabel(['err (' unit ')'], 'interpreter', 'none')
@@ -227,13 +231,7 @@ classdef SolverLog < handle
                 err_best = optim{i}.sol_fom.err_best;
                 t_solver = optim{i}.sol_fom.t_solver;
                 
-                if isfinite(err_best)
-                    err_conv_ok_vec(i) = err_best;
-                    err_conv_ko_vec(i) = NaN;
-                else
-                    err_conv_ok_vec(i) = NaN;
-                    err_conv_ko_vec(i) = 0;
-                end
+                err_conv_vec(i) = err_best;
                 t_solver_conv_vec(i) = t_solver;
             end
             
@@ -242,9 +240,10 @@ classdef SolverLog < handle
             
             % plot the error metric
             subplot(1,2,1)
-            plot(conv_vec, scale.*err_conv_ok_vec, 'og')
-            hold('on')
-            plot(conv_vec, scale.*err_conv_ko_vec, 'or')
+            plot(conv_vec, scale.*err_conv_vec, 'og')
+            set(gca, 'xscale','lin')
+            set(gca, 'yscale','log')
+            xlim([min(conv_vec) max(conv_vec)])
             grid('on')
             xlabel('iter (#)', 'interpreter', 'none')
             ylabel(['err (' unit ')'], 'interpreter', 'none')
@@ -253,6 +252,7 @@ classdef SolverLog < handle
             % plot the solver timing data
             subplot(1,2,2)
             plot(conv_vec, seconds(t_solver_conv_vec), 'ob')
+            xlim([min(conv_vec) max(conv_vec)])
             grid('on')
             xlabel('iter (#)', 'interpreter', 'none')
             ylabel('t (s)', 'interpreter', 'none')
@@ -299,10 +299,10 @@ classdef SolverLog < handle
                 assert(n_pts==1, 'invalid size: solution')
                 
                 % get the error metrics
-                [err_best, n_set, err_vec, wgt_vec] = self.fct_sol(x_scale);
+                [err_best, err_vec, wgt_vec] = self.fct_sol(x_scale);
                 
                 % process the error metrics
-                err_fom = SolverLog.get_err_fom(err_best, n_set, err_vec, wgt_vec);
+                err_fom = SolverLog.get_err_fom(err_best, err_vec, wgt_vec);
             else
                 param = [];
                 bnd = [];
@@ -397,11 +397,11 @@ classdef SolverLog < handle
             sol_fom.t_iter = t_iter;
         end
         
-        function err_fom = get_err_fom(err_best, n_set, err_vec, wgt_vec)
+        function err_fom = get_err_fom(err_best, err_vec, wgt_vec)
             % Process the error metrics and assign the results to a struct.
             
             % get the error for different types of norms
-            err_fom.n_set = n_set;
+            err_fom.n_set = (length(err_vec)+length(wgt_vec))./2;
             err_fom.wgt_sum = sum(wgt_vec);
             err_fom.wgt_avg = sum(wgt_vec)./length(wgt_vec);
             

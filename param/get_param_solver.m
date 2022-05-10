@@ -12,9 +12,12 @@ function [cache, optimizer] = get_param_solver()
 cache.use_cache = true;
 
 % allow (or not) vectorized call to the error function
-%    - if true, several parameters combinations are evaluated at once
-%    - if false, each combination is evaluated separately
+%    - if true, several parameters combinations are evaluated at once (vectorized call)
+%    - if false, each combination is evaluated separately (in a for-loop)
 cache.vec_cache = true;
+
+% use (or not) parfor for evaluating many combinations in a for-loop
+cache.parfor_cache = false;
 
 % maximum number of elements in the cache
 cache.n_cache = 1e3;
@@ -50,7 +53,7 @@ switch solver_type
         options.err_lim = 0.3; % threshold for keeping a parameter combinations
         options.n_tot = 50; % number of combinations to be found
         options.n_batch = 50; % number of tested combinations per solver iteration
-        options.n_iter_max = 10; % maximum number of iterations
+        options.n_iter_max = 25; % maximum number of iterations
         
         % solver handles constraints, sine transformation is not required
         clamp_bnd = false;
@@ -132,7 +135,7 @@ switch solver_type
         options = optimoptions (@ga);
         options = optimoptions(options, 'FunctionTolerance', 1e-6);
         options = optimoptions(options, 'ConstraintTolerance', 1e-6);
-        options = optimoptions(options, 'Generations', 1000);
+        options = optimoptions(options, 'Generations', 100);
         options = optimoptions(options, 'MaxStallGenerations', 50);
         options = optimoptions(options, 'PopulationSize', 500);
         options = optimoptions(options, 'MaxStallTime', 60.*60);

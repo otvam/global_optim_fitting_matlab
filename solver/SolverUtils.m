@@ -14,7 +14,8 @@ classdef SolverUtils < handle
             
             % check
             idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
-            
+            assert(norm>=1, 'invalid norm')
+
             % compute the norm
             if isfinite(norm)
                 err_wgt_mat = abs(err_mat).*(wgt_mat.^(1./norm));
@@ -57,7 +58,9 @@ classdef SolverUtils < handle
             
             % check
             idx_nan = SolverUtils.get_err_data(err_mat, wgt_mat);
-            
+            assert(percentile>=0, 'invalid norm')
+            assert(percentile<=1, 'invalid norm')
+
             % compute the weighted percentile
             for i=1:size(err_mat, 2)
                 % extract
@@ -195,12 +198,14 @@ classdef SolverUtils < handle
         function x_norm = get_var_norm(x, lb, ub, norm, is_revert)
             % Variable normalization (or denormalization).
             
-            if norm==true
+            if (norm==true)&&isfinite(lb)&&isfinite(ub)
                 if is_revert==true
                     x_norm = lb+x.*(ub-lb);
                 else
                     x_norm = (x-lb)./(ub-lb);
                 end
+            else
+                x_norm = x;
             end
         end
     end
