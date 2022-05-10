@@ -37,7 +37,10 @@ classdef SolverCache < handle
             self.tol_cache = cache.tol_cache;
             
             % init the cache
-            self.get_clear();
+            self.i_cache = 0;
+            self.x_mat_cache = [];
+            self.err_mat_cache = [];
+            self.wgt_mat_cache = [];
         end
         
         function [err_mat, wgt_mat] = get_eval(self, x_mat)
@@ -48,15 +51,6 @@ classdef SolverCache < handle
             else
                 [err_mat, wgt_mat] = self.get_eval_fct(x_mat);
             end
-        end
-        
-        function get_clear(self)
-            % Clear and reset the cache.
-            
-            self.i_cache = 0;
-            self.x_mat_cache = [];
-            self.err_mat_cache = [];
-            self.wgt_mat_cache = [];
         end
     end
     
