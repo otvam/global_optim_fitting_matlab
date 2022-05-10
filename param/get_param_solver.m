@@ -50,7 +50,7 @@ switch solver_type
         % brute force solver for generating reasonable initial values
         %    - generate random parameters combinations (within bounds)
         %    - select the combinations with an error metric below the threshold
-        options.err_lim = 0.3; % threshold for keeping a parameter combinations
+        options.err_lim = 0.8; % threshold for keeping a parameter combinations
         options.n_tot = 50; % number of combinations to be found
         options.n_batch = 50; % number of tested combinations per solver iteration
         options.n_iter_max = 25; % maximum number of iterations
@@ -118,7 +118,7 @@ switch solver_type
         options = optimoptions (@particleswarm);
         options = optimoptions(options, 'FunctionTolerance', 1e-6);
         options = optimoptions(options, 'MaxIterations', 50);
-        options = optimoptions(options, 'MaxStallIterations', 50);
+        options = optimoptions(options, 'MaxStallIterations', 25);
         options = optimoptions(options, 'SwarmSize', 500);
         options = optimoptions(options, 'MaxStallTime', 60.*60);
         options = optimoptions(options, 'MaxTime', 60.*60);
@@ -135,8 +135,8 @@ switch solver_type
         options = optimoptions (@ga);
         options = optimoptions(options, 'FunctionTolerance', 1e-6);
         options = optimoptions(options, 'ConstraintTolerance', 1e-6);
-        options = optimoptions(options, 'Generations', 100);
-        options = optimoptions(options, 'MaxStallGenerations', 50);
+        options = optimoptions(options, 'Generations', 50);
+        options = optimoptions(options, 'MaxStallGenerations', 25);
         options = optimoptions(options, 'PopulationSize', 500);
         options = optimoptions(options, 'MaxStallTime', 60.*60);
         options = optimoptions(options, 'MaxTime', 60.*60);
