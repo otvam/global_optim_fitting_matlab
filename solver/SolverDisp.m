@@ -40,7 +40,7 @@ classdef SolverDisp < handle
             
             % get name
             pad = repmat(' ', 1, indent);
-            name = sprintf('%s / %s /n = %d', self.solver_type, name, n_iter);
+            name = sprintf('%s / %s / n = %d', self.solver_type, name, n_iter);
 
             % name of the iteration
             SolverDisp.get_print(pad, '%s', name)
@@ -62,7 +62,7 @@ classdef SolverDisp < handle
             SolverDisp.get_print(pad, '            t_iter = %s', char(optim.sol_fom.t_iter))
             SolverDisp.get_print(pad, '        error')
             SolverDisp.get_print(pad, '            n_pop_all = %d', optim.sol_fom.n_pop_all)
-            SolverDisp.get_print(pad, '            n_pop_fail = %d', optim.sol_fom.n_pop_fail)
+            SolverDisp.get_print(pad, '            n_pop_valid = %d', optim.sol_fom.n_pop_valid)
             SolverDisp.get_print(pad, '            err_best = %s', SolverDisp.get_format_scalar(optim.sol_fom.err_best, err))
             
             if optim.has_solution==true
@@ -134,7 +134,7 @@ classdef SolverDisp < handle
                 
                 % plot the error distribution (if it exists)
                 if n_set>1
-                    name = sprintf('%s /n = %d', name, n_iter);
+                    name = sprintf('%s / n = %d', name, n_iter);
                     set(fig, 'Visible', 'on')
 
                     % histogram
@@ -145,8 +145,11 @@ classdef SolverDisp < handle
                     title(ax(1), sprintf('Histogram / %s', name), 'interpreter', 'none')
                     
                     % scatter plot with error and weights
-                    scatter(ax(2), scale.*err_vec, wgt_vec, 50, 'b', 'filled')
+                    scatter(ax(2), scale.*err_vec, wgt_vec, 50, scale.*err_vec.*wgt_vec, 'filled')
                     grid(ax(2), 'on')
+                    cbar = colorbar(ax(2));
+                    cbar.Label.String = ['weights x errors (' unit ')'];
+                    cbar.Label.Interpreter = 'none';
                     xlabel(ax(2), ['errors (' unit ')'], 'interpreter', 'none')
                     ylabel(ax(2), 'weights (#)', 'interpreter', 'none')
                     title(ax(2), sprintf('Weights / %s', name), 'interpreter', 'none')
@@ -165,28 +168,24 @@ classdef SolverDisp < handle
             fig = self.handle_all.fig;
             ax = self.handle_all.ax;
             
-            % extract the data for all iterations (error metric and timing)
-            conv_vec = 1:length(optim);
+            % extract the data for all iterations
             for i=1:length(optim)
-                err_best = optim{i}.sol_fom.err_best;
-                t_solver = optim{i}.sol_fom.t_solver;
-                
-                err_conv_vec(i) = err_best;
-                t_solver_conv_vec(i) = t_solver;
+                err_best_vec(i) = optim{i}.sol_fom.err_best;
+                n_iter_vec(i) = optim{i}.sol_fom.n_iter;
             end
             
             % plot all iterations
-            name = sprintf('%s /n = %d', name, n_iter);
+            name = sprintf('%s / n = %d', name, n_iter);
             set(fig, 'Visible', 'on')
             
             % plot the error metric
-            plot(ax(1), conv_vec, scale.*err_conv_vec, 'og')
-            xlim(ax(1), [min(conv_vec)-1 max(conv_vec)+1])
+            plot(ax(1), n_iter_vec, scale.*err_best_vec, 'or', 'MarkerFaceColor', 'r')
+            xlim(ax(1), [min(n_iter_vec)-1 max(n_iter_vec)+1])
             grid(ax(1), 'on')
             set(ax(1), 'xscale', xscale)
             set(ax(1), 'yscale', yscale)
-            xlabel(ax(1), 'iter (#)', 'interpreter', 'none')
-            ylabel(ax(1), ['err (' unit ')'], 'interpreter', 'none')
+            xlabel(ax(1), 'iterations (#)', 'interpreter', 'none')
+            ylabel(ax(1), ['total error (' unit ')'], 'interpreter', 'none')
             title(ax(1), sprintf('Convergence / %s', name), 'interpreter', 'none')
         end
     end

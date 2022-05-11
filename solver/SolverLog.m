@@ -172,7 +172,7 @@ classdef SolverLog < handle
             % check population
             pop_valid = isfinite(err);
             n_pop_all = length(pop_valid);
-            n_pop_fail = nnz(pop_valid==false);
+            n_pop_valid = nnz(pop_valid);
             
             % parse the solver message
             msg = strtrim(msg);
@@ -187,7 +187,7 @@ classdef SolverLog < handle
             sol_fom.n_iter = n_iter;
             sol_fom.n_eval = n_eval;
             sol_fom.n_pop_all = n_pop_all;
-            sol_fom.n_pop_fail = n_pop_fail;
+            sol_fom.n_pop_valid = n_pop_valid;
             sol_fom.t_solver = t_solver;
             sol_fom.t_iter = t_iter;
         end

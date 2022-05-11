@@ -5,6 +5,7 @@ function [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format,
 %        - fminunc / fminsearch / fmincon
 %        - surrogateopt / particleswarm / ga
 %        - combination of several solvers
+%        - object-oriented interfaces
 %
 %    Customized error function
 %        - custom weights for the dataset points
