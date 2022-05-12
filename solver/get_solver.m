@@ -1,36 +1,50 @@
 function [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format, cache, optimizer)
-% Fit parameters with respect to a dataset with advanced solvers.
+% MATLAB Toolbox for Global Fitting/Optimization.
 %
-%    This function provides a common interface for different solvers
-%        - fminunc / fminsearch / fmincon
-%        - surrogateopt / particleswarm / ga
-%        - combination of several solvers
-%        - object-oriented interfaces
+%    This MATLAB toolbox can be used for the following problems:
+%        - finding global minimum of a function
+%        - fitting a function to a dataset
 %
-%    Customized error function
+%    This toolbox is specially adapted to the following problems:
+%        - non-smooth error function
+%        - non-convex error function
+%        - computationally heavy error function
+%        - error function with local minima
+%        - error function with many input variables
+%
+%    This toolbox provides a common interface for different solvers:
+%        - gradient: fminunc / fmincon
+%        - simplex: fminsearch
+%        - surrogate: surrogateopt
+%        - evolutionary: particleswarm / ga
+%        - the aforementioned solvers can be combined
+%
+%    Customized error function:
 %        - custom weights for the dataset points
-%        - choice of the error norm
+%        - choice of the error metric (norm, average, percentile, etc.)
 %        - recover from undefined values
 %        - vectorized evaluation of the error function
+%        - parallel evaluation of the error function
 %        - caching of the error function
 %
-%    Advanced parameters handling
-%        - scalar or vector parameters
+%    Advanced variable handling:
 %        - initial values
-%        - bounds (even for unconstrained solvers)
-%        - variable transformation
-%        - variable normlization
+%        - scalar or vector variables
+%        - variable transformation (linear, quadratic, logarithmic, etc.)
+%        - variable normalization
+%        - constraints (lower and upper bounds)
+%        - transformation of constrained variables in unconstrained variables
 %
-%    Advanced monitoring capabilities
-%        - error metrics
-%        - solver metrics
-%        - computational cost / timing
-%        - plots
+%    Advanced monitoring capabilities:
+%        - compute various error metrics
+%        - compute solver figures of merit
+%        - plot/display the solver progress
+%        - plot/display the final results
 %
 %    Warning:
 %        All the provided features have a computational cost.
-%        Therefore, this library is mostly adapted to error functions
-%        with large computational cost and/or vectorized error functions.
+%        Therefore, this library is mostly adapted to time-consuming error functions.
+%        For simple error functions, the overhead is non-negligible.
 %
 %    Parameters:
 %        var_opt (cell): description of the parameters to be fitted

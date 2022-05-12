@@ -162,7 +162,7 @@ optimizer.log.iter = struct('log', true, 'display', true, 'plot', true);
 optimizer.log.final = struct('log', true, 'display', true, 'plot', true);
 
 % handling of variable bounds
-%    - if false, the solver is handling the constraints
+%    - if false, the solver is handling the constraints (if the solver supports constraints)
 %    - if true, the contraints are implemented with a sine transformation
 %    - this allows to implements bounds with solver that do not provide constraints
 optimizer.clamp_bnd = clamp_bnd;
