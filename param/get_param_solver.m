@@ -9,14 +9,19 @@ function [cache, optimizer] = get_param_solver()
 %    2021-2022 - BSD License.
 
 % use (or not) the cache
+%    - the cache has a not negligible computational cost
+%    - therefore, the cache should only be used with computationally heavy error function
 cache.use_cache = true;
 
 % allow (or not) vectorized call to the error function
 %    - if true, several parameters combinations are evaluated at once (vectorized call)
 %    - if false, each combination is evaluated separately (in a for-loop)
+%    - vectorized call should be preferred (if possible) as they are much faster 
 cache.vec_cache = true;
 
 % use (or not) parfor for evaluating many combinations in a for-loop
+%     - this options is only used if the calls are not vectorized
+%     - this options is only used if parallelism is not used at the solver level
 cache.parfor_cache = false;
 
 % maximum number of elements in the cache
@@ -30,8 +35,14 @@ cache.tol_cache = 1e-12;
 %    - the first solver is using the provided initial values
 %    - afterwards, the results is used as initial values
 optimizer = {};
+
+% find reasonable initial values
 optimizer{end+1} = get_optimizer('init');
+
+% slow convergence but robust against local minima
 optimizer{end+1} = get_optimizer('ga');
+
+% faster convergence close to the optimum
 optimizer{end+1} = get_optimizer('fminsearch');
 
 end
