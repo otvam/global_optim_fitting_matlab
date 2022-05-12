@@ -5,6 +5,8 @@ function run_example_optim()
 %    Demonstrate the code capabilities:
 %        - cascaded solvers
 %        - variable scaling
+%        - error metrics
+%        - plot / display
 %        - caching
 %
 %    Thomas Guillod.

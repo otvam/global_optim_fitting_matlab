@@ -32,6 +32,7 @@ Customized **error function**:
 * **caching** of the error function
 
 Advanced **variable handling**:
+* **abstraction layer** for the variables
 * **initial** values
 * **scalar or vector** variables
 * variable **transformation** (linear, quadratic, logarithmic, etc.)
@@ -47,9 +48,9 @@ Advanced **monitoring** capabilities:
 
 ## Limitations
 
-All the provided features have a computational cost.
-Therefore, this library is mostly adapted to time-consuming error functions.
-For simple error functions, the overhead is non-negligible.
+* All the provided features have a **computational cost**.
+* Therefore, this library is mostly adapted to **time-consuming error functions**.
+* For simple error functions, the **overhead is non-negligible**.
 
 ## Examples
 

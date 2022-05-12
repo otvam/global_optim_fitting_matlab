@@ -28,6 +28,7 @@ function [param, optim] = get_solver(var_opt, var_fix, var_err, fct_err, format,
 %        - caching of the error function
 %
 %    Advanced variable handling:
+%        - abstraction layer for the variables
 %        - initial values
 %        - scalar or vector variables
 %        - variable transformation (linear, quadratic, logarithmic, etc.)
