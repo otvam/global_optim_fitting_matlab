@@ -47,6 +47,7 @@ classdef SolverList < handle
             % solver need contrained variables
             n_init = size(x0, 1);
             n_var = size(x0, 2);
+            is_init = all(isfinite(x0(:)));
             is_bnd = all(isfinite(lb))&&all(isfinite(ub));
             assert(is_bnd, 'invalid initial point')
             assert(n_init>=1, 'invalid data')
@@ -56,17 +57,25 @@ classdef SolverList < handle
             n_tot = options.n_tot;
             n_iter_max = options.n_iter_max;
             err_lim = options.err_lim;
-            
+                        
             % run solver
             n_iter = 0;
             n_eval = 0;
             x = [];
             err = [];
-            while (n_iter<n_iter_max)&&(size(x, 1)<n_tot)
-                n_iter = n_iter+1;
-                n_eval = n_eval+n_batch;
+            while (n_iter<=n_iter_max)&&(size(x, 1)<n_tot)
+                % select the point
+                if (n_iter==0)&&(is_init==true)
+                    x_tmp = x0;
+                else
+                    x_tmp = lb+(ub-lb).*rand(n_batch, n_var);
+                end
                 
-                [x, err] = SolverList.get_iter_init(x, err, n_iter, n_eval, fct_sol, fct_iter, n_var, lb, ub, n_batch, err_lim);
+                % eval the error function
+                [x, err, n_eval] = SolverList.get_iter_init(x, err, x_tmp, n_iter, n_eval, fct_sol, fct_iter, err_lim);
+                
+                % update iteration
+                n_iter = n_iter+1;
             end
             
             % check if the required number of solution is found
@@ -279,15 +288,15 @@ classdef SolverList < handle
             optchanged = false;
         end
         
-        function [x, err] = get_iter_init(x, err, n_iter, n_eval, fct_sol, fct_iter, n_var, lb, ub, n_batch, err_lim)
+        function [x, err, n_eval] = get_iter_init(x, err, x_tmp, n_iter, n_eval, fct_sol, fct_iter, err_lim)
             % Make an iteration for the init solver.
-            
-            % select random points between the bounds
-            x_tmp = lb+(ub-lb).*rand(n_batch, n_var);
-            
+                        
             % evaluate the error function
             err_tmp = fct_sol(x_tmp);
-                        
+            
+            % count evaluation
+            n_eval = n_eval+size(x_tmp, 1);
+                                    
             % select only points that are valid a below the threshold
             idx = isfinite(err_tmp)&(err_tmp<err_lim);
             x = [x ; x_tmp(idx,:)];
