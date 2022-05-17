@@ -16,6 +16,7 @@ function [var_opt, var_fix, var_err, fct_err, format] = get_param_fitting()
 
 % definition of the variables optimized by the solver
 %    - name (str): name of the variable
+%    - idx (vector): index of the variable to be assigned (empty for all)
 %    - x0 (matrix): initial values of the variable (row: size of the variable / col: number of initial values)
 %    - lb (scalar): lower bound of the variable (infinite value are tolerated)
 %    - ub (scalar): upper bound of the variable (infinite value are tolerated)
@@ -34,19 +35,20 @@ function [var_opt, var_fix, var_err, fct_err, format] = get_param_fitting()
 %        - this tolerance is only used for analysing the solution, not for the solver itself
 %        - this tolerance is usefull to detect if the solver is stuck near a bound
 var_opt = {};
-var_opt{end+1} = struct('name', 'k', 'x0', [0.5, 0.6], 'lb', 0.1, 'ub', 100.0, 'trf', 'log', 'norm', true, 'tol_bnd', 0.05);
-var_opt{end+1} = struct('name', 'dx', 'x0', [1.5, 2.5], 'lb', 1.0, 'ub', 3.0, 'trf', 'lin', 'norm', true, 'tol_bnd', 0.05);
-var_opt{end+1} = struct('name', 'dy', 'x0', [1.5, 2.5], 'lb', 1.0, 'ub', 3.0, 'trf', 'lin', 'norm', true, 'tol_bnd', 0.05);
+var_opt{end+1} = struct('name', 'k', 'x0', [0.5, 0.6], 'idx', [], 'lb', 0.1, 'ub', 100.0, 'trf', 'log', 'norm', true, 'tol_bnd', 0.05);
+var_opt{end+1} = struct('name', 'dx', 'x0', [1.5, 2.5], 'idx', [], 'lb', 1.0, 'ub', 3.0, 'trf', 'lin', 'norm', true, 'tol_bnd', 0.05);
+var_opt{end+1} = struct('name', 'dy', 'x0', [1.5, 2.5], 'idx', [], 'lb', 1.0, 'ub', 3.0, 'trf', 'lin', 'norm', true, 'tol_bnd', 0.05);
 
 % definition of the variables with constant values (not optimized)
 %    - name (str): name of the variable
 %    - x0 (column vector): value of the variable (can be a column vector)
+%    - idx (vector): index of the variable to be assigned (empty for all)
 var_fix = {};
-var_fix{end+1} = struct('name', 'n_set', 'x0', n_set);
-var_fix{end+1} = struct('name', 'wgt', 'x0', wgt);
-var_fix{end+1} = struct('name', 'x', 'x0', x);
-var_fix{end+1} = struct('name', 'y', 'x0', y);
-var_fix{end+1} = struct('name', 'val', 'x0', val);
+var_fix{end+1} = struct('name', 'n_set', 'x0', n_set, 'idx', []);
+var_fix{end+1} = struct('name', 'wgt', 'x0', wgt, 'idx', []);
+var_fix{end+1} = struct('name', 'x', 'x0', x, 'idx', []);
+var_fix{end+1} = struct('name', 'y', 'x0', y, 'idx', []);
+var_fix{end+1} = struct('name', 'val', 'x0', val, 'idx', []);
 
 % definition of the considered error metric
 %    - the error function is returning an error vector and a weight vector
@@ -167,7 +169,7 @@ wgt = wgt_mat(:);
 n_set = length(wgt);
 
 % the parameters used to generate the value are noisy
-k = 15.0.*(1+0.1.*randn(n_set, 1));
+k = 15.0.*(1+0.01.*randn(n_set, 1));
 dx = 1.5;
 dy = 2.5;
 
