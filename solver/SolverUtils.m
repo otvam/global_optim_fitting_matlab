@@ -133,14 +133,12 @@ classdef SolverUtils < handle
                 lb_unclamp = lb;
                 ub_unclamp = ub;
             end
-            
+                        
             % avoid numerical issue at the bounds
-            if x_unclamp<=lb_unclamp
-                x_unclamp = lb_unclamp+eps;
-            end
-            if x_unclamp>=ub_unclamp
-                x_unclamp = ub_unclamp-eps;
-            end
+            idx = x_unclamp<=lb_unclamp;
+            x_unclamp(idx) = lb_unclamp+eps;
+            idx = x_unclamp>=ub_unclamp;
+            x_unclamp(idx) = ub_unclamp-eps;
         end
         
         function x = get_var_clamp(x_unclamp, lb, ub, clamp_bnd)
