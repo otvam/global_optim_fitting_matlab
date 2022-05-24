@@ -11,9 +11,6 @@ classdef SolverDisp < handle
     properties (SetAccess = private, GetAccess = private)
         solver_type % name of the used solver
         format % structure with formatting instructions (name and unit)
-        
-        handle_single % figure containing the info on a iteration
-        handle_all % figure containing the info on all iterations
     end
     
     %% public
@@ -24,10 +21,6 @@ classdef SolverDisp < handle
             % set data
             self.solver_type = solver_type;
             self.format = format;
-            
-            % init the figure handles with placeholders
-            self.handle_single = [];
-            self.handle_all = [];
         end
                 
         function get_disp(self, name, n_iter, optim)
@@ -133,8 +126,7 @@ classdef SolverDisp < handle
                 % plot the error distribution (if it exists)
                 if n_set>1
                     % get figure and axis handles
-                    self.handle_single = SolverDisp.get_figure(self.handle_single, [self.solver_type ' / single'], 2);
-                    ax = self.handle_single.ax;
+                    ax = SolverDisp.get_figure([self.solver_type ' / single'], 2);
                     
                     % get figure name
                     name = sprintf('%s / n = %d', name, n_iter);
@@ -175,21 +167,20 @@ classdef SolverDisp < handle
             end
             
             % get figure and axis handles
-            self.handle_all = SolverDisp.get_figure(self.handle_all, [self.solver_type ' / all'], 1);
-            ax = self.handle_all.ax;
+            ax = SolverDisp.get_figure([self.solver_type ' / all'], 1);
 
             % get figure name
             name = sprintf('%s / n = %d', name, n_iter);
             
             % plot the error metric
-            plot(ax(1), n_iter_vec, scale.*err_best_vec, 'or', 'MarkerFaceColor', 'r')
-            xlim(ax(1), [min(n_iter_vec)-1 max(n_iter_vec)+1])
-            grid(ax(1), 'on')
-            set(ax(1), 'xscale', xscale)
-            set(ax(1), 'yscale', yscale)
-            xlabel(ax(1), 'iterations (#)', 'interpreter', 'none')
-            ylabel(ax(1), ['total error (' unit ')'], 'interpreter', 'none')
-            title(ax(1), sprintf('Convergence / %s', name), 'interpreter', 'none')
+            plot(ax, n_iter_vec, scale.*err_best_vec, 'or', 'MarkerFaceColor', 'r')
+            xlim(ax, [min(n_iter_vec)-1 max(n_iter_vec)+1])
+            grid(ax, 'on')
+            set(ax, 'xscale', xscale)
+            set(ax, 'yscale', yscale)
+            xlabel(ax, 'iterations (#)', 'interpreter', 'none')
+            ylabel(ax, ['total error (' unit ')'], 'interpreter', 'none')
+            title(ax, sprintf('Convergence / %s', name), 'interpreter', 'none')
         end
     end
     
@@ -242,21 +233,21 @@ classdef SolverDisp < handle
             txt = sprintf('[%s]', strjoin(txt, ' ; '));
         end
         
-        function handle = get_figure(handle, name, n)
-            % Create a figure and return axes handles.
+        function ax = get_figure(name, n)
+            % Create a figure and return handle.
             
-            if isempty(handle)
-                is_valid = false;
-            else
-                is_valid = isvalid(handle.fig)&&all(isvalid(handle.ax));
-            end
-            
-            if is_valid==false
-                handle.fig = figure('name', name);
+            fig = findobj( 'Type', 'Figure', 'Name', name);
+            if isempty(fig)
+                fig = figure('Name', name);
                 for i=1:n
-                    handle.ax(i) = subplot(1, n, i);
+                    subplot(1, n, i);
                 end
+            else
+                assert(length(fig)==1, 'invalid figure')
             end
+            
+            ax = findall(fig, 'type', 'axes');
+            assert(length(ax)==n, 'invalid figure')
         end
         
         function get_print(pad, name, varargin)
