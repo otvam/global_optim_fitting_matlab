@@ -24,12 +24,12 @@ classdef SolverDisp < handle
             % set data
             self.solver_type = solver_type;
             self.format = format;
-                        
-            % get figure handles
-            self.handle_single = SolverDisp.get_figure([self.solver_type ' / single'], 2);
-            self.handle_all = SolverDisp.get_figure([self.solver_type ' / all'], 1);
+            
+            % init the figure handles with placeholders
+            self.handle_single = [];
+            self.handle_all = [];
         end
-        
+                
         function get_disp(self, name, n_iter, optim)
             % Display the logged data for a specific iteration.
             
@@ -41,7 +41,7 @@ classdef SolverDisp < handle
             % get name
             pad = repmat(' ', 1, indent);
             name = sprintf('%s / %s / n = %d', self.solver_type, name, n_iter);
-
+            
             % name of the iteration
             SolverDisp.get_print(pad, '%s', name)
             
@@ -124,8 +124,6 @@ classdef SolverDisp < handle
                 % extract format
                 scale = self.format.err.scale;
                 unit = self.format.err.unit;
-                fig = self.handle_single.fig;
-                ax = self.handle_single.ax;
                 
                 % extract the error vector and the weighted error vector
                 err_vec = optim.err_fom.err_vec;
@@ -134,9 +132,13 @@ classdef SolverDisp < handle
                 
                 % plot the error distribution (if it exists)
                 if n_set>1
+                    % get figure and axis handles
+                    self.handle_single = SolverDisp.get_figure(self.handle_single, [self.solver_type ' / single'], 2);
+                    ax = self.handle_single.ax;
+                    
+                    % get figure name
                     name = sprintf('%s / n = %d', name, n_iter);
-                    set(fig, 'Visible', 'on')
-
+                    
                     % histogram
                     histogram(ax(1), scale.*err_vec, 'Normalization', 'pdf')
                     grid(ax(1), 'on')
@@ -165,18 +167,19 @@ classdef SolverDisp < handle
             unit = self.format.err.unit;
             xscale = self.format.err.xscale;
             yscale = self.format.err.yscale;
-            fig = self.handle_all.fig;
-            ax = self.handle_all.ax;
-            
+                        
             % extract the data for all iterations
             for i=1:length(optim)
                 err_best_vec(i) = optim{i}.sol_fom.err_best;
                 n_iter_vec(i) = optim{i}.sol_fom.n_iter;
             end
             
-            % plot all iterations
+            % get figure and axis handles
+            self.handle_all = SolverDisp.get_figure(self.handle_all, [self.solver_type ' / all'], 1);
+            ax = self.handle_all.ax;
+
+            % get figure name
             name = sprintf('%s / n = %d', name, n_iter);
-            set(fig, 'Visible', 'on')
             
             % plot the error metric
             plot(ax(1), n_iter_vec, scale.*err_best_vec, 'or', 'MarkerFaceColor', 'r')
@@ -189,7 +192,7 @@ classdef SolverDisp < handle
             title(ax(1), sprintf('Convergence / %s', name), 'interpreter', 'none')
         end
     end
-        
+    
     %% private static api
     methods(Static, Access = private)
         function txt = get_format_scalar(val, format)
@@ -238,22 +241,27 @@ classdef SolverDisp < handle
             % assemble the string
             txt = sprintf('[%s]', strjoin(txt, ' ; '));
         end
-                
-        function handle = get_figure(name, n)
+        
+        function handle = get_figure(handle, name, n)
             % Create a figure and return axes handles.
-
-            fig = figure('name', name, 'Visible', 'off');
-            for i=1:n
-                ax(i) = subplot(1, n, i);
+            
+            if isempty(handle)
+                is_valid = false;
+            else
+                is_valid = isvalid(handle.fig)&&all(isvalid(handle.ax));
             end
-
-            handle.fig = fig;
-            handle.ax = ax;
+            
+            if is_valid==false
+                handle.fig = figure('name', name);
+                for i=1:n
+                    handle.ax(i) = subplot(1, n, i);
+                end
+            end
         end
         
         function get_print(pad, name, varargin)
             % Print a line with padding.
-
+            
             fprintf([pad, name '\n'], varargin{:})
         end
     end
