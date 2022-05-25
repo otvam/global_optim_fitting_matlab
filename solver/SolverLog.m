@@ -134,16 +134,25 @@ classdef SolverLog < handle
                 [~, idx_best] = min(err);
                 x_scale = x_scale(:,idx_best);
                 
-                % extract the parameter structure from a raw data
-                [n_pts, param, bnd, is_bound] = self.fct_unscale(x_scale);
-                assert(n_pts==1, 'invalid size: solution')
-                
                 % get the error metrics
                 [err_best, err_vec, wgt_vec] = self.fct_sol(x_scale);
                 
-                % process the error metrics
-                err_fom = SolverLog.get_err_fom(err_best, err_vec, wgt_vec);
-            else
+                % invalid solution can be there due to cache tolerance
+                has_solution = isfinite(err_best)&&all(isfinite(err_best))&&all(isfinite(wgt_vec));
+                
+                % parse data if a solution exists
+                if has_solution==true
+                    % extract the parameter structure from a raw data
+                    [n_pts, param, bnd, is_bound] = self.fct_unscale(x_scale);
+                    assert(n_pts==1, 'invalid size: solution')
+                    
+                    % process the error metrics
+                    err_fom = SolverLog.get_err_fom(err_best, err_vec, wgt_vec);
+                end
+            end
+            
+            % create a empty solution if required
+            if has_solution==false
                 param = [];
                 bnd = [];
                 err_fom = [];
