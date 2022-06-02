@@ -166,6 +166,9 @@ end
 % solver name
 optimizer.solver_type = solver_type;
 
+% maximum time (in seconds) before killing the solver
+optimizer.t_timeout = Inf;
+
 % log the solver progress after each iteration
 optimizer.log.iter = struct('log', true, 'display', true, 'plot', true);
 

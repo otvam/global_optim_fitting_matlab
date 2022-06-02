@@ -53,6 +53,7 @@ classdef SolverDisp < handle
             SolverDisp.get_print(pad, '        timing')
             SolverDisp.get_print(pad, '            t_solver = %s', char(optim.sol_fom.t_solver))
             SolverDisp.get_print(pad, '            t_iter = %s', char(optim.sol_fom.t_iter))
+            SolverDisp.get_print(pad, '            is_timeout = %s',  mat2str(optim.sol_fom.is_timeout))
             SolverDisp.get_print(pad, '        error')
             SolverDisp.get_print(pad, '            n_pop_all = %d', optim.sol_fom.n_pop_all)
             SolverDisp.get_print(pad, '            n_pop_valid = %d', optim.sol_fom.n_pop_valid)

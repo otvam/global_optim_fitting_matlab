@@ -14,7 +14,8 @@ classdef SolverLog < handle
         final % log (or not) the solver final results
         fct_unscale % function the extract the parameter structure from a raw matrix
         fct_sol % function returning the error metrics
-        
+        t_timeout % maximum time (in seconds) before killing the solver
+
         t_start % timestamp set at the initialization
         t_last % timestamp of the last iteration
         optim_iter % cell containing the logged solver progress data
@@ -24,13 +25,14 @@ classdef SolverLog < handle
     
     %% public
     methods (Access = public)
-        function self = SolverLog(solver_type, log, fct_unscale, fct_sol, format)
+        function self = SolverLog(solver_type, log, t_timeout, fct_unscale, fct_sol, format)
             % Constructor.
             
             % set data
             self.solver_type = solver_type;
             self.iter = log.iter;
             self.final = log.final;
+            self.t_timeout = t_timeout;
             self.fct_unscale = fct_unscale;
             self.fct_sol = fct_sol;
             
@@ -46,9 +48,13 @@ classdef SolverLog < handle
             self.obj_disp = SolverDisp(solver_type, format);
         end
         
-        function get_iter(self, x_scale, err, n_iter, n_eval, msg, is_valid)
+        function is_timeout = get_iter(self, x_scale, err, n_iter, n_eval, msg, is_valid)
             % Log and display the solver progress after an iteration.
             
+            % check stop condition
+            is_timeout = self.get_is_timeout();
+            
+            % log the data
             if self.iter.log==true
                 % get the total solver timing
                 [t_solver, t_iter] = get_time(self, n_iter, false);
@@ -57,7 +63,7 @@ classdef SolverLog < handle
                 msg = sprintf('intermediate results\nstate: %s', msg);
                 
                 % get and add the logging data
-                optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
+                optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, is_timeout);
                 self.optim_iter{end+1} = optim_tmp;
                 
                 % display and plot the data
@@ -75,6 +81,10 @@ classdef SolverLog < handle
         function get_final(self, x_scale, err, n_iter, n_eval, msg, is_valid)
             % Log, display, and plot the solver results after the final iteration.
             
+            % check stop condition
+            is_timeout = self.get_is_timeout();
+
+            % log the data
             if self.final.log==true
                 % get the total solver timing
                 [t_solver, t_iter] = get_time(self, n_iter, true);
@@ -83,7 +93,7 @@ classdef SolverLog < handle
                 msg = sprintf('final results\n%s', msg);
                 
                 % get and add the logging data
-                optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
+                optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, is_timeout);
                 self.optim_final = optim_tmp;
                 
                 % display and plot the data
@@ -109,6 +119,19 @@ classdef SolverLog < handle
     
     %% private api
     methods( Access = private)
+        function is_timeout = get_is_timeout(self)
+            % Check if the maximum time has been reached.
+            
+            % get current time
+            t_now = datetime('now');
+            
+            % get total solver time
+            t_solver = t_now-self.t_start;
+            
+            % check stop
+            is_timeout = seconds(t_solver)>self.t_timeout;
+        end
+        
         function [t_solver, t_iter] = get_time(self, n_iter, is_final)
             % Compute and update the solver timing (total time and iteration time).
             
@@ -129,7 +152,7 @@ classdef SolverLog < handle
             self.t_last = t_now;
         end
         
-        function optim = get_log(self, x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter)
+        function optim = get_log(self, x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter, is_timeout)
             % Parse and assign the logging data for a specific iteration.
             
             % check if there is a valid solution
@@ -169,7 +192,7 @@ classdef SolverLog < handle
             end
             
             % get the solver figures of merit
-            sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter);
+            sol_fom = SolverLog.get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter, is_timeout);
             
             % assign base data
             optim.has_solution = has_solution;
@@ -182,7 +205,7 @@ classdef SolverLog < handle
     
     %% private static api
     methods(Static, Access = private)
-        function sol_fom = get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter)
+        function sol_fom = get_sol_fom(err, err_best, is_valid, is_bound, n_iter, n_eval, msg, t_solver, t_iter, is_timeout)
             % Process the solver data and assign the results to a struct.
             
             % check population
@@ -206,6 +229,7 @@ classdef SolverLog < handle
             sol_fom.n_pop_valid = n_pop_valid;
             sol_fom.t_solver = t_solver;
             sol_fom.t_iter = t_iter;
+            sol_fom.is_timeout = is_timeout;
         end
         
         function err_fom = get_err_fom(err_best, err_vec, wgt_vec)

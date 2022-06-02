@@ -57,13 +57,14 @@ classdef SolverList < handle
             n_tot = options.n_tot;
             n_iter_max = options.n_iter_max;
             err_lim = options.err_lim;
-                        
+            
             % run solver
             n_iter = 0;
             n_eval = 0;
             x = [];
             err = [];
-            while (n_iter<=n_iter_max)&&(size(x, 1)<n_tot)
+            is_timeout = false;
+            while (is_timeout==false)&&(n_iter<=n_iter_max)&&(size(x, 1)<n_tot)
                 % select the point
                 if (n_iter==0)&&(is_init==true)
                     x_tmp = x0;
@@ -72,7 +73,7 @@ classdef SolverList < handle
                 end
                 
                 % eval the error function
-                [x, err, n_eval] = SolverList.get_iter_init(x, err, x_tmp, n_iter, n_eval, fct_sol, fct_iter, err_lim);
+                [is_timeout, x, err, n_eval] = SolverList.get_iter_init(x, err, x_tmp, n_iter, n_eval, fct_sol, fct_iter, err_lim);
                 
                 % update iteration
                 n_iter = n_iter+1;
@@ -238,7 +239,7 @@ classdef SolverList < handle
     end
     
     methods (Static, Access = private)
-        function stop = get_outfun_grad(x, optim, msg, fct_iter)
+        function is_timeout = get_outfun_grad(x, optim, msg, fct_iter)
             % Output function for standard MATLAB solvers.
             
             % extract
@@ -248,13 +249,10 @@ classdef SolverList < handle
             
             % call the display and logging function
             is_valid = isempty(x)==false;
-            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
-            
-            % do not stop the solver
-            stop = false;
+            is_timeout = fct_iter(x, err, n_iter, n_eval, msg, is_valid);
         end
         
-        function stop = get_outfun_particleswarm(optim, msg, fct_iter)
+        function is_timeout = get_outfun_particleswarm(optim, msg, fct_iter)
             % Output function for particleswarm.
             
             % extract
@@ -265,10 +263,7 @@ classdef SolverList < handle
             
             % call the display and logging function
             is_valid = isempty(x)==false;
-            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
-            
-            % do not stop the solver
-            stop = false;
+            is_timeout = fct_iter(x, err, n_iter, n_eval, msg, is_valid);
         end
         
         function [optim, options, optchanged] = get_outfun_ga(options, optim, msg, fct_iter)
@@ -282,30 +277,35 @@ classdef SolverList < handle
             
             % call the display and logging function
             is_valid = isempty(x)==false;
-            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
+            is_timeout = fct_iter(x, err, n_iter, n_eval, msg, is_valid);
             
-            % do not stop the solver
+            % stop the solver if required
+            if is_timeout==true
+                optim.StopFlag = 'timeout';
+            end
+            
+            % do not stop the solver options
             optchanged = false;
         end
         
-        function [x, err, n_eval] = get_iter_init(x, err, x_tmp, n_iter, n_eval, fct_sol, fct_iter, err_lim)
+        function [is_timeout, x, err, n_eval] = get_iter_init(x, err, x_tmp, n_iter, n_eval, fct_sol, fct_iter, err_lim)
             % Make an iteration for the init solver.
-                        
+            
             % evaluate the error function
             err_tmp = fct_sol(x_tmp);
             
             % count evaluation
             n_eval = n_eval+size(x_tmp, 1);
-                                    
+            
             % select only points that are valid a below the threshold
             idx = isfinite(err_tmp)&(err_tmp<err_lim);
             x = [x ; x_tmp(idx,:)];
             err = [err ; err_tmp(idx,:)];
-                        
+            
             % call the display and logging function
             msg = 'iter';
             is_valid = isempty(x)==false;
-            fct_iter(x, err, n_iter, n_eval, msg, is_valid);
+            is_timeout = fct_iter(x, err, n_iter, n_eval, msg, is_valid);
         end
     end
 end
