@@ -9,6 +9,7 @@ classdef SolverLog < handle
     
     %% properties
     properties (SetAccess = private, GetAccess = private)
+        solver_type % name of the used solver
         iter % log (or not) the solver iterations
         final % log (or not) the solver final results
         fct_unscale % function the extract the parameter structure from a raw matrix
@@ -16,7 +17,8 @@ classdef SolverLog < handle
         
         t_start % timestamp set at the initialization
         t_last % timestamp of the last iteration
-        optim % cell containing the logged data
+        optim_iter % cell containing the logged solver progress data
+        optim_final % cell containing the final iteration data
         obj_disp % object managing the plots and console display
     end
     
@@ -26,15 +28,19 @@ classdef SolverLog < handle
             % Constructor.
             
             % set data
+            self.solver_type = solver_type;
             self.iter = log.iter;
             self.final = log.final;
             self.fct_unscale = fct_unscale;
             self.fct_sol = fct_sol;
             
-            % init the timing and logging data
+            % init the timing
             self.t_start = datetime('now');
             self.t_last = datetime('now');
-            self.optim = {};
+            
+            % init the logging data
+            self.optim_iter = {};
+            self.optim_final = struct();
             
             % object managing the plots and console display
             self.obj_disp = SolverDisp(solver_type, format);
@@ -44,7 +50,6 @@ classdef SolverLog < handle
             % Log and display the solver progress after an iteration.
             
             if self.iter.log==true
-                
                 % get the total solver timing
                 [t_solver, t_iter] = get_time(self, n_iter, false);
                 
@@ -53,15 +58,15 @@ classdef SolverLog < handle
                 
                 % get and add the logging data
                 optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
-                self.optim{end+1} = optim_tmp;
+                self.optim_iter{end+1} = optim_tmp;
                 
                 % display and plot the data
                 if self.iter.display==true
-                    self.obj_disp.get_disp('iter', n_iter, self.optim{end})
+                    self.obj_disp.get_disp('iter', n_iter, self.optim_iter{end})
                 end
                 if self.iter.plot==true
-                    self.obj_disp.get_plot_single('iter', n_iter, self.optim{end})
-                    self.obj_disp.get_plot_all('iter', n_iter, self.optim)
+                    self.obj_disp.get_plot_single('iter', n_iter, optim_tmp)
+                    self.obj_disp.get_plot_all('iter', n_iter, self.optim_iter)
                     drawnow();
                 end
             end
@@ -79,15 +84,15 @@ classdef SolverLog < handle
                 
                 % get and add the logging data
                 optim_tmp = self.get_log(x_scale, err, is_valid, n_iter, n_eval, msg, t_solver, t_iter);
-                self.optim{end+1} = optim_tmp;
+                self.optim_final = optim_tmp;
                 
                 % display and plot the data
                 if self.final.display==true
-                    self.obj_disp.get_disp('final', n_iter, self.optim{end})
+                    self.obj_disp.get_disp('final', n_iter, self.optim_iter{end})
                 end
                 if self.final.plot==true
-                    self.obj_disp.get_plot_single('final', n_iter, self.optim{end})
-                    self.obj_disp.get_plot_all('final', n_iter, self.optim)
+                    self.obj_disp.get_plot_single('final', n_iter, optim_tmp)
+                    self.obj_disp.get_plot_all('final', n_iter, self.optim_iter)
                     drawnow();
                 end
             end
@@ -96,7 +101,9 @@ classdef SolverLog < handle
         function optim = get_optim(self)
             % Get the logged data.
             
-            optim = self.optim;
+            optim.solver_type = self.solver_type;
+            optim.iter = self.optim_iter;
+            optim.final = self.optim_final;
         end
     end
     
