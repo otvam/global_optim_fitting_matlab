@@ -68,7 +68,7 @@ classdef SolverLog < handle
                 
                 % display and plot the data
                 if self.iter.display==true
-                    self.obj_disp.get_disp('iter', n_iter, self.optim_iter{end})
+                    self.obj_disp.get_disp('iter', n_iter, optim_tmp)
                 end
                 if self.iter.plot==true
                     self.obj_disp.get_plot_single('iter', n_iter, optim_tmp)
@@ -98,7 +98,7 @@ classdef SolverLog < handle
                 
                 % display and plot the data
                 if self.final.display==true
-                    self.obj_disp.get_disp('final', n_iter, self.optim_iter{end})
+                    self.obj_disp.get_disp('final', n_iter, optim_tmp)
                 end
                 if self.final.plot==true
                     self.obj_disp.get_plot_single('final', n_iter, optim_tmp)
