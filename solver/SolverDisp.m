@@ -93,7 +93,7 @@ classdef SolverDisp < handle
                 for i=1:length(field)
                     value = optim.param.(field{i});
                     if isfield(param, field{i})
-                        str = SolverDisp.get_format_vec(value, param.(field{i}));
+                        str = SolverDisp.get_format_mat(value, param.(field{i}));
                         SolverDisp.get_print(pad, '        param.%s = %s', field{i}, str)
                     else
                         SolverDisp.get_print(pad, '        param.%s = hidden', field{i})
@@ -202,8 +202,8 @@ classdef SolverDisp < handle
             txt = [txt ' ' unit];
         end
         
-        function txt = get_format_vec(vec, format)
-            % Parse a vector to a string with scaling and units.
+        function txt = get_format_mat(mat, format)
+            % Parse a matrix to a string with scaling and units.
             
             % extract
             spec = format.spec;
@@ -211,8 +211,13 @@ classdef SolverDisp < handle
             unit = format.unit;
             
             % parse each elements
-            for i=1:length(vec)
-                txt{i} = sprintf(spec, scale.*vec(i));
+            txt = {};
+            for i=1:size(mat, 1)
+                txt_tmp = {};
+                for j=1:size(mat, 2)
+                    txt_tmp{j} = sprintf(spec, scale.*mat(i, j));
+                end
+                txt{i} = strjoin(txt_tmp, ' , ');
             end
             
             % assemble the string

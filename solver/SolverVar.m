@@ -204,6 +204,9 @@ classdef SolverVar < handle
             norm = var_opt.norm;
             tol_bnd = var_opt.tol_bnd;
             
+            % check size
+            assert(length(size(x0))==2, 'invalid data')
+
             % get variable size
             n_size = size(x0, 1);
             n_pts = size(x_scale, 2);
@@ -254,17 +257,13 @@ classdef SolverVar < handle
             
             % extract
             x0 = var_fix.x0;
-            idx = var_fix.idx;
             name = var_fix.name;
             
+            % check size
+            assert(length(size(x0))==2, 'invalid data')
+            
             % handle the fixed variables
-            assert(size(x0, 2)==1, 'invalid data')
-            if isempty(idx)
-                param.(name) = x0;
-            else
-                assert(size(x0, 1)==length(idx), 'invalid data')
-                param.(name)(idx,:) = x0;
-            end
+            param.(name) = x0;
         end
     end
 end

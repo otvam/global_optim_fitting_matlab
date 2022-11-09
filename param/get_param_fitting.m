@@ -41,14 +41,13 @@ var_opt{end+1} = struct('name', 'dy', 'x0', [1.5, 2.5], 'idx', [], 'lb', 1.0, 'u
 
 % definition of the variables with constant values (not optimized)
 %    - name (str): name of the variable
-%    - x0 (column vector): value of the variable (can be a column vector)
-%    - idx (vector): index of the variable to be assigned (empty for all)
+%    - x0 (matrix): value of the variable (can be a scalar, a vector, or a matrix)
 var_fix = {};
-var_fix{end+1} = struct('name', 'n_set', 'x0', n_set, 'idx', []);
-var_fix{end+1} = struct('name', 'wgt', 'x0', wgt, 'idx', []);
-var_fix{end+1} = struct('name', 'x', 'x0', x, 'idx', []);
-var_fix{end+1} = struct('name', 'y', 'x0', y, 'idx', []);
-var_fix{end+1} = struct('name', 'val', 'x0', val, 'idx', []);
+var_fix{end+1} = struct('name', 'n_set', 'x0', n_set);
+var_fix{end+1} = struct('name', 'wgt', 'x0', wgt);
+var_fix{end+1} = struct('name', 'x', 'x0', x);
+var_fix{end+1} = struct('name', 'y', 'x0', y);
+var_fix{end+1} = struct('name', 'val', 'x0', val);
 
 % definition of the considered error metric
 %    - the error function is returning an error vector and a weight vector
