@@ -3,7 +3,7 @@
 ![license - BSD](https://img.shields.io/badge/license-BSD-green)
 ![language - MATLAB](https://img.shields.io/badge/language-MATLAB-blue)
 ![category - science](https://img.shields.io/badge/category-science-lightgrey)
-![status - maintained](https://img.shields.io/badge/status-maintained-green)
+![status - unmaintained](https://img.shields.io/badge/status-unmaintained-red)
 
 This **MATLAB toolbox** can be used for the following problems:
 * finding **global minimum** of a function
